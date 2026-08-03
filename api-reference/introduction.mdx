@@ -1,0 +1,31 @@
+---
+title: "API reference"
+description: "How to read this reference, and where the schema comes from."
+---
+
+Every endpoint on the following pages is generated from the OpenAPI schema the server
+publishes at `/openapi.json`. It is therefore exactly what the running instance serves —
+including endpoints that predate this documentation.
+
+A live instance also serves interactive documentation at `/docs`.
+
+## Base URL
+
+```
+https://YOUR_DOMAIN
+```
+
+For a local stack, `http://localhost:8000`.
+
+## Editions
+
+The schema published here is the **open-source** edition. A deployment that loads
+commercial extensions serves additional endpoints — billing, usage quotas, MFA — which
+are absent here. See [Editions](/concepts/editions).
+
+## Conventions
+
+- Request and response bodies are JSON.
+- List endpoints that can grow are paginated; pagination parameters are shown per
+  endpoint.
+- Timestamps are ISO 8601. Server-side, deployments run in UTC — convert for display.

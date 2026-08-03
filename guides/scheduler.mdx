@@ -1,0 +1,42 @@
+---
+title: "Scheduler"
+description: "Run agents on a cron schedule."
+---
+
+Recurring runs are delegated to [Mage AI](https://www.mage.ai/), configured through the
+`BASE_URL`, `API_KEY`, `OAUTH_TOKEN` and `PROJECT_NAME` variables.
+
+```json
+POST /api/adk/schedule_run
+{
+  "agent_id": "agent42",
+  "user_id": "user@example.com",
+  "session_id": "session_scheduled",
+  "new_message": {
+    "role": "user",
+    "parts": [{ "text": "Generate the daily report" }]
+  },
+  "schedule_interval": "@daily",
+  "start_time": "2026-03-10T08:00:00"
+}
+```
+
+## Presets
+
+| Preset | Cron |
+| --- | --- |
+| `@hourly` | `0 * * * *` |
+| `@daily` | `0 0 * * *` |
+| `@weekly` | `0 0 * * 0` |
+| `@monthly` | `0 0 1 * *` |
+| Custom | e.g. `*/15 * * * *` |
+
+## Managing triggers
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/pipelines` | List pipelines |
+| POST | `/api/pipelines/agents/triggers` | Create a trigger for an agent |
+| GET | `/api/pipelines/{uuid}/schedules` | List schedules |
+| PUT | `/api/pipelines/schedules/{id}` | Update |
+| DELETE | `/api/pipelines/schedules/{id}` | Delete |

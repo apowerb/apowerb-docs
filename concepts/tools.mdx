@@ -1,0 +1,62 @@
+---
+title: "Tools"
+description: "The tool portfolio, and the difference between a tool and a tool config."
+---
+
+A **tool** is a capability module shipped with the framework. A **tool config** is an
+instance of one, holding your credentials and parameters. Agents reference tool config
+ids, never tool names.
+
+```
+GET /api/tools                     list available tools
+GET /api/tools/{tool_name}/params  parameters a config must provide
+POST /api/tools_config             create a configured instance
+```
+
+## Portfolio
+
+### Google Workspace
+
+| Module | Functions |
+| --- | --- |
+| `google_drive` | List, search, read, download files |
+| `google_gmail` | List, search, read, send email |
+| `google_calendar` | List, search, create events |
+| `google_sheets` | Spreadsheet info, read and write cells |
+| `google_docs` | Create, read, append |
+
+### Microsoft 365
+
+| Module | Functions |
+| --- | --- |
+| `outlook_mail` | List, search, read, send, folders, attachments |
+| `onedrive` | List, search, read, download, upload, folders, shared files |
+| `teams` | Chats, messages, replies, search, group chats, members |
+
+### Data and databases
+
+| Module | Functions |
+| --- | --- |
+| `database` | Generic queries and SQL execution |
+| `text_to_sql` | Natural language to SQL, schema introspection |
+| `db_to_rag` | Index query results into RAG |
+| `data_handler` | Filtering, aggregation, transformation |
+
+### Knowledge
+
+| Module | Functions |
+| --- | --- |
+| `rag` | Create, list, search and delete knowledge bases |
+| `memory` | Save and search user memory and tool usage patterns |
+
+### Communication and utilities
+
+| Module | Functions |
+| --- | --- |
+| `emailing` | Send email over SMTP |
+| `marketing` | HubSpot integration, sales leads |
+| `basic` | Read files, load data, convert images, bearer tokens |
+| `api_call` | Generic API calls |
+| `s3_tools` | Read and search S3 files |
+| `visualization` | Chart generation, CSV to chart export |
+| `web_search_mcp` | Web search over MCP |

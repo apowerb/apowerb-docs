@@ -1,0 +1,24 @@
+---
+title: "Database"
+description: "Postgres, TLS and migrations."
+---
+
+## TLS
+
+The Postgres shipped with the compose stack does not use TLS and does not need to:
+traffic never leaves the internal Docker network, hence `DB_SSLMODE=disable`.
+
+Against a managed database — Neon, RDS, OVHcloud — point `DB_HOST` at it and restore
+`DB_SSLMODE=require`, which is the core's default.
+
+## Migrations
+
+Migrations run automatically at boot: the `ensure_*` helpers converge the schema before
+the application serves traffic. There is no separate migration command.
+
+<Warning>
+  Because migrations run forward at boot, rolling the application back to a previous
+  release does **not** roll the schema back. Take a database dump before upgrading a
+  production instance, and treat the dump — not the previous image — as your rollback
+  plan.
+</Warning>

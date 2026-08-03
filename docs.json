@@ -1,0 +1,137 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "apowerb",
+  "description": "Open-source agentic framework — orchestration, tools, RAG, Text-to-SQL and webhooks on top of FastAPI and Google ADK.",
+  "colors": {
+    "primary": "#0A1E72",
+    "light": "#5B7CFA",
+    "dark": "#061551"
+  },
+  "favicon": "/logo/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://github.com/apowerb/apowerb"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "index",
+              "quickstart",
+              "installation",
+              "configuration"
+            ]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/editions",
+              "concepts/agents",
+              "concepts/orchestration",
+              "concepts/sessions-and-runs",
+              "concepts/tools"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/rag",
+              "guides/text-to-sql",
+              "guides/webhooks",
+              "guides/webhooks-gmail",
+              "guides/webhooks-outlook",
+              "guides/integrations",
+              "guides/streaming",
+              "guides/scheduler",
+              "guides/hub",
+              "guides/artifacts"
+            ]
+          },
+          {
+            "group": "Self-hosting",
+            "pages": [
+              "self-hosting/docker",
+              "self-hosting/database",
+              "self-hosting/secrets",
+              "self-hosting/production"
+            ]
+          },
+          {
+            "group": "Ecosystem",
+            "pages": [
+              "ecosystem/overview",
+              "ecosystem/apowerb-ui",
+              "ecosystem/th2rag",
+              "ecosystem/th2etl",
+              "ecosystem/th2pulse"
+            ]
+          },
+          {
+            "group": "Contributing",
+            "pages": [
+              "contributing/contributing",
+              "contributing/development",
+              "contributing/releases"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api-reference/introduction",
+              "api-reference/authentication",
+              "api-reference/errors"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "openapi": "api-reference/openapi.json"
+          }
+        ]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "GitHub",
+          "href": "https://github.com/apowerb",
+          "icon": "github"
+        },
+        {
+          "anchor": "PyPI",
+          "href": "https://pypi.org/project/apowerb/",
+          "icon": "python"
+        }
+      ]
+    }
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Issues",
+        "href": "https://github.com/apowerb/apowerb/issues"
+      }
+    ],
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/apowerb/apowerb"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/apowerb",
+      "website": "https://thaink2.com"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+---
+title: "Outlook webhooks"
+description: "Wire Outlook push notifications through Microsoft Graph."
+---
+
+## Prerequisites
+
+- A registered Microsoft Azure AD application
+- Microsoft Graph permission `Mail.Read`
+- A publicly reachable HTTPS URL
+
+## Setup
+
+<Steps>
+  <Step title="Configure the environment">
+    Set the `MICROSOFT_INTEGRATION_*` variables — see [Configuration](/configuration).
+  </Step>
+  <Step title="Connect Outlook">
+    From the interface, connect the Outlook integration.
+  </Step>
+  <Step title="Subscribe">
+    Create a webhook subscription with `"provider": "microsoft_outlook"`.
+  </Step>
+</Steps>
+
+The handler uses Microsoft Graph change notifications and validates `clientState` on
+every delivery. Subscriptions expire after three days and are renewed automatically —
+see [Webhooks](/guides/webhooks).

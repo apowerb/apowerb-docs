@@ -1,0 +1,40 @@
+---
+title: "Authentication"
+description: "Obtaining and using a token."
+---
+
+All endpoints except health, config and provider callbacks require a bearer token.
+
+## Getting a token
+
+```bash
+curl -X POST https://YOUR_DOMAIN/api/auth/token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "password": "..."}'
+```
+
+Use it on every subsequent call:
+
+```
+Authorization: Bearer <token>
+```
+
+Tokens are signed with `ENCRYPT_KEY` and expire after `ACCESS_TOKEN_EXPIRE_MINUTES`
+(120 by default). Refresh with `POST /api/auth/refresh-token`; `POST /api/auth/logout`
+clears the refresh cookie.
+
+## OAuth login
+
+`POST /api/users/oauth/{provider}/callback` completes a login started with GitHub,
+Google, Microsoft or LinkedIn.
+
+## Multi-factor authentication
+
+TOTP-based MFA is part of a commercial edition. On an open-source build,
+`/api/auth/mfa/*` answers `404` — see [Editions](/concepts/editions).
+
+<Warning>
+  `ENCRYPT_KEY` signs tokens. If it is empty, token verification degenerates: a required
+  secret that receives an empty string can make forged tokens acceptable. Refuse to boot
+  without it rather than defaulting it.
+</Warning>

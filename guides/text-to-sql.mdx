@@ -1,0 +1,28 @@
+---
+title: "Text-to-SQL"
+description: "Let an agent answer questions against a relational database."
+---
+
+<Steps>
+  <Step title="Create a database tool config">
+    Provide connection parameters through `POST /api/tools_config`.
+  </Step>
+  <Step title="Enable the tool on an agent">
+    Add the `text_to_sql` tool config id to the agent's `agent_tools`.
+  </Step>
+  <Step title="Ask">
+    The agent introspects the schema, generates SQL, executes it, and answers from the
+    result set.
+  </Step>
+</Steps>
+
+Schema introspection is cached. After a migration, clear it:
+
+```
+POST /api/rag/schema-cache/invalidate
+```
+
+<Note>
+  A query that returns no rows surfaces as `422`, not as an empty success — see
+  [Errors](/api-reference/errors).
+</Note>

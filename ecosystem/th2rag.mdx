@@ -1,0 +1,14 @@
+---
+title: "th2rag"
+description: "The retrieval-augmented generation backend."
+---
+
+[`th2rag`](https://github.com/apowerb/th2rag) is a FastAPI service handling document
+processing, vector search and conversational retrieval. The core delegates all indexing
+and search to it.
+
+Configure `RAG_BASE_URL` to point at the service, and `RAG_WEBHOOK_SECRET` to the
+shared HMAC secret used to sign completion callbacks.
+
+Its surface covers conversations, messages, knowledge bases and datasets. See
+[RAG](/guides/rag) for how the core drives it.

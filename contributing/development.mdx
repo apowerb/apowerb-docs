@@ -1,0 +1,46 @@
+---
+title: "Development setup"
+description: "Running the core locally with tests and linting."
+---
+
+```bash
+git clone https://github.com/apowerb/apowerb.git
+cd apowerb
+
+pip install uv
+uv venv && source .venv/bin/activate
+uv sync --group dev
+cp .env.example .env
+```
+
+Fill in at least the `DB_*` variables and `ENCRYPT_KEY`, then:
+
+```bash
+uv run uvicorn apowerb.main:app --reload
+```
+
+## Tests and linting
+
+```bash
+pytest
+
+ruff check .
+ruff format .
+```
+
+Hooks are configured in `.pre-commit-config.yaml`:
+
+```bash
+pre-commit install
+```
+
+## Documentation
+
+The documentation site is a Mintlify project. From the `apowerb-docs` clone:
+
+```bash
+npm i -g mint
+mint dev
+```
+
+It serves on `http://localhost:3000` and reloads on save.

@@ -1,0 +1,32 @@
+---
+title: "Orchestration"
+description: "The four execution patterns and how sub-agents compose."
+---
+
+`agent_type` selects how an agent executes.
+
+| Type | Behaviour |
+| --- | --- |
+| `llm` / `base` | A single agent, executed directly |
+| `parallel` | Sub-agents run concurrently, results are combined |
+| `sequential` | Sub-agents run one after another, each seeing the previous output |
+| `loop` | Iterative execution until a stop condition is met |
+
+## Sub-agents
+
+Composite agents reference children through `sub_agents`. Children are themselves
+agents — they can carry their own tools, model and instruction, and can be composite
+in turn, which is how hierarchies are built.
+
+```json
+{
+  "agent_name": "Research pipeline",
+  "agent_type": "sequential",
+  "sub_agents": ["collector_agent_id", "analyst_agent_id", "writer_agent_id"]
+}
+```
+
+<Note>
+  Under Google ADK, sub-agents of one invocation share an execution tree. When reading
+  traces, do not assume one identifier per agent — correlate on the agent name as well.
+</Note>

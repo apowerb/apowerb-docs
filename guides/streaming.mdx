@@ -1,0 +1,41 @@
+---
+title: "SSE streaming"
+description: "Three server-sent event channels."
+---
+
+| Channel | Endpoint | Events |
+| --- | --- | --- |
+| Agent response | `POST /api/adk/run_sse` | Token-by-token output |
+| RAG progress | `GET /api/rag/stream/{agent_id}` | `connected`, `status`, `complete` |
+| Notifications | `GET /api/notifications/stream` | Real-time user notifications |
+
+## Consuming a stream
+
+```js
+const res = await fetch("/api/adk/run_sse", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  },
+  body: JSON.stringify(payload),
+});
+
+const reader = res.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  for (const line of decoder.decode(value).split("\n")) {
+    if (line.startsWith("data: ")) {
+      handle(JSON.parse(line.slice(6)));
+    }
+  }
+}
+```
+
+<Note>
+  Chunks do not align with event boundaries. Buffer the decoded text and split on
+  newlines across reads rather than parsing each chunk on its own.
+</Note>

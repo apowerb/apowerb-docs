@@ -1,0 +1,54 @@
+---
+title: "Introduction"
+description: "apowerb is an open-source agentic framework for building, running and operating AI agents."
+---
+
+apowerb is an agentic framework for building and deploying AI agents. It ships as a
+Python package exposing a FastAPI server, a Typer CLI, and a REST API that any client
+can drive — including the companion Next.js interface, [apowerb-ui](/ecosystem/apowerb-ui).
+
+Agents are defined in the database, materialised as Python modules at startup, and
+executed through [Google ADK](https://google.github.io/adk-docs/). Model access goes
+through [LiteLLM](https://docs.litellm.ai/), so any major provider works without
+touching agent code.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Bring the full stack up with Docker in a few minutes.
+  </Card>
+  <Card title="Install from PyPI" icon="python" href="/installation">
+    Run the server on its own, against your own Postgres.
+  </Card>
+  <Card title="API reference" icon="code" href="/api-reference/introduction">
+    Every endpoint, generated from the OpenAPI schema.
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/contributing/contributing">
+    How to propose a change and get it released.
+  </Card>
+</CardGroup>
+
+## What it does
+
+| Capability | Summary |
+| --- | --- |
+| **Agent orchestration** | Four execution patterns — `base`, `parallel`, `sequential`, `loop` — plus hierarchical sub-agents. |
+| **Tool system** | 24+ tool modules: Google Workspace, Microsoft 365, databases, RAG, S3, visualisation, web search. |
+| **RAG as a service** | Index files, URLs, SQL query results and S3 buckets into per-agent knowledge bases. |
+| **Text-to-SQL** | Schema introspection plus natural-language to SQL, executed against your database. |
+| **Webhooks** | Gmail (Pub/Sub) and Outlook (Graph) push notifications trigger agents on new mail. |
+| **OAuth integrations** | GitHub, Google, Microsoft and LinkedIn for both login and workspace access. |
+| **SSE streaming** | Token-by-token agent output, RAG indexing progress, and user notifications. |
+| **Scheduling** | Cron-style recurring agent runs. |
+| **Agent Hub** | Publish an agent, let another workspace clone it. |
+
+## Requirements
+
+- Python 3.12 or later (3.13 recommended)
+- PostgreSQL
+- [uv](https://docs.astral.sh/uv/) for local development
+
+<Note>
+  Some capabilities described across this documentation belong to commercial editions
+  and are **absent** from the open-source build — not disabled behind a flag. See
+  [Editions](/concepts/editions) for how to tell which is which.
+</Note>

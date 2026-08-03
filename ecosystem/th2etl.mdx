@@ -1,0 +1,17 @@
+---
+title: "th2etl"
+description: "ETL and automation library."
+---
+
+[`th2etl`](https://github.com/apowerb/th2etl) is an in-house ETL and automation library,
+published on PyPI. It is independent of the agent runtime: use it to build the pipelines
+that feed the data agents later query.
+
+```bash
+pip install th2etl
+```
+
+<Warning>
+  If you deploy th2etl next to the core, keep it on loopback behind your reverse proxy.
+  It has no authentication of its own.
+</Warning>

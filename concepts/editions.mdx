@@ -1,0 +1,80 @@
+---
+title: "Editions and extensions"
+description: "How the open-source core stays complete on its own, and how commercial bricks plug into it."
+---
+
+apowerb is an open core. The published package is a complete, generic server — not a
+crippled build waiting for a licence key.
+
+## Absent, not disabled
+
+Commercial capabilities — identity-provider login, multi-factor authentication, token
+accounting and quotas, billing, B2B prospecting — are **not present** in the
+open-source build. There is no feature flag to flip and no dead code in the image.
+
+That distinction is observable on a running stack:
+
+```
+GET /api/config           → no "billing_enabled" key
+GET /api/usage/quota      → 404
+GET /api/billing/packages → 404
+GET /api/auth/mfa/status  → 404
+```
+
+<Note>
+  A **missing** key and a key set to `false` do not say the same thing. The first says
+  the capability does not exist in this edition. Client code should treat an absent key
+  as "not in this edition", never as "disabled".
+</Note>
+
+## The extension mechanism
+
+Bricks are plugged in by naming their Python module in `TH2_EXTENSIONS`, as a
+comma-separated list. Each module exposes a `register(registry)` function — or,
+historically, `init_overlay(registry)`. Both entry-point names are accepted.
+
+```bash
+TH2_EXTENSIONS=mycompany_pack.entrypoint,mycompany_connector
+```
+
+At startup the loader imports each module in order and calls its entry point, letting
+it register routers, tools and services against the core registry. Registered routers
+are mounted after the core's own.
+
+`TH2_OVERLAY_MODULE` is the older single-module form. It is still honoured and is
+loaded after everything listed in `TH2_EXTENSIONS`.
+
+With neither variable set, no extension loads and the core stays generic and complete
+in itself. That property is what makes publishing the core alone possible.
+
+### Failures are loud
+
+Any error while loading an extension propagates and stops startup. A broken extension
+must be visible to the healthcheck, never degrade the service silently.
+
+An extension that exposes neither `register` nor `init_overlay` raises at load time.
+
+## Writing an extension
+
+```python
+# mycompany_pack/entrypoint.py
+from fastapi import APIRouter
+
+router = APIRouter(prefix="/api/mycompany", tags=["mycompany"])
+
+
+@router.get("/ping")
+def ping() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+def register(registry) -> None:
+    registry.add_router(router)
+```
+
+<Warning>
+  Installing an extension and **loading** it are two different steps. Adding the package
+  to the environment does nothing on its own — the module must also be named in
+  `TH2_EXTENSIONS`. A stack that installs the brick but forgets the variable starts
+  healthy, answers `200`, and silently lacks the capability.
+</Warning>

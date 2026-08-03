@@ -1,0 +1,16 @@
+---
+title: "Overview"
+description: "The repositories that make up the apowerb ecosystem."
+---
+
+| Repository | What it is | Language |
+| --- | --- | --- |
+| [`apowerb`](https://github.com/apowerb/apowerb) | The core — API, agents, tools, CLI | Python |
+| [`apowerb-ui`](https://github.com/apowerb/apowerb-ui) | The web interface | Next.js |
+| [`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) | Deployment configurations | Docker Compose |
+| [`th2rag`](https://github.com/apowerb/th2rag) | Retrieval-augmented generation backend | Python |
+| [`th2etl`](https://github.com/apowerb/th2etl) | ETL and automation library | Python |
+| [`th2pulse`](https://github.com/apowerb/th2pulse) | OpenTelemetry collection and observability | Python |
+
+The core depends on none of the satellites at import time. `th2rag` is reached over
+HTTP through `RAG_BASE_URL`; `th2pulse` and `th2etl` are optional.

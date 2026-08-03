@@ -1,0 +1,49 @@
+---
+title: "Integrations"
+description: "OAuth for login, and OAuth for the services agents act on."
+---
+
+There are two distinct categories of OAuth, backed by two distinct applications:
+
+1. **User login** — sign up and sign in with GitHub, Google, Microsoft or LinkedIn.
+2. **Workspace integrations** — connect an external service so agent tools can use it.
+
+## Connecting a workspace integration
+
+<Steps>
+  <Step title="Get the authorisation URL">
+    `GET /api/integrations/{provider}/{service}/connect`
+  </Step>
+  <Step title="User consents">
+    On the provider's consent screen.
+  </Step>
+  <Step title="Provider redirects back">
+    `POST /api/integrations/{provider}/callback`
+  </Step>
+  <Step title="Tokens are stored encrypted">
+    In the `integrations` table, encrypted with `ENCRYPT_KEY`.
+  </Step>
+</Steps>
+
+Agent tools then use those tokens transparently.
+
+## Supported services
+
+| Provider | Services | Scopes |
+| --- | --- | --- |
+| Google | Drive, Gmail, Calendar, Sheets, Docs | Service-specific, e.g. `gmail.readonly`, `drive.readonly` |
+| Microsoft | Outlook, Teams, OneDrive, SharePoint | Service-specific, e.g. `Mail.Read`, `Files.ReadWrite` |
+| GitHub | Repositories, Gists | `repo`, `gist`, `read:user` |
+
+## Endpoints
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/integrations` | List connected integrations |
+| GET | `/api/integrations/google/{service}/connect` | Google authorisation URL |
+| POST | `/api/integrations/google/callback` | Google callback |
+| GET | `/api/integrations/microsoft/{service}/connect` | Microsoft authorisation URL |
+| POST | `/api/integrations/microsoft/callback` | Microsoft callback |
+| GET | `/api/integrations/github/connect` | GitHub authorisation URL |
+| POST | `/api/integrations/github/callback` | GitHub callback |
+| DELETE | `/api/integrations/{provider}` | Disconnect |

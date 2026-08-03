@@ -1,0 +1,50 @@
+---
+title: "Agents"
+description: "How an agent is defined, stored and materialised."
+---
+
+An agent is a database record. At startup — and whenever an agent changes — the server
+generates a Python module for it under `agents_pool/`, which Google ADK then executes.
+
+## Creating an agent
+
+```json
+POST /api/agents
+{
+  "agent_name": "My Assistant",
+  "agent_model": "anthropic/claude-sonnet-4-5-20250929",
+  "agent_description": "Specialized agent for data analysis",
+  "agent_instruction": "You are an expert data analyst.",
+  "agent_type": "llm",
+  "agent_tools": ["tool_config_id_1", "tool_config_id_2"],
+  "sub_agents": [],
+  "memory_enabled": false,
+  "artifacts_enabled": false,
+  "tags": ["analytics"]
+}
+```
+
+## Fields
+
+| Field | Description |
+| --- | --- |
+| `agent_name` | Display name, also the ADK application name |
+| `agent_model` | LiteLLM model string, e.g. `anthropic/claude-sonnet-4-5-20250929` |
+| `agent_instruction` | System instruction |
+| `agent_type` | Execution pattern — see [Orchestration](/concepts/orchestration) |
+| `agent_tools` | Tool **config** ids, not tool names — see [Tools](/concepts/tools) |
+| `sub_agents` | Child agents, for the composite patterns |
+| `memory_enabled` | Persist and search user memory across sessions |
+| `artifacts_enabled` | Allow the agent to write and execute files |
+
+## Endpoints
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/agents` | List the caller's agents |
+| POST | `/api/agents` | Create |
+| GET | `/api/agents/{agent_id}` | Details |
+| PUT | `/api/agents/{agent_id}` | Update |
+| DELETE | `/api/agents/{agent_id}` | Delete |
+| POST | `/api/agents/{agent_id}/run` | Start a background run |
+| GET | `/api/agents/{agent_id}/status` | Run status |

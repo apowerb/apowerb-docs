@@ -1,0 +1,21 @@
+---
+title: "Errors"
+description: "Status codes and what they mean here."
+---
+
+| Code | Meaning |
+| --- | --- |
+| `400` | Bad request — check the body |
+| `401` | Unauthorized — missing or invalid token |
+| `403` | Forbidden — the resource exists but is not yours |
+| `404` | Not found — or the capability is absent from this edition |
+| `413` | File too large — 50 MB per file maximum |
+| `422` | Unprocessable — for example, a query that returned no data |
+| `500` | Internal server error |
+| `503` | Service temporarily unavailable |
+
+<Note>
+  `404` is overloaded: it means either "this object does not exist" or "this endpoint
+  does not exist in this edition". Check [Editions](/concepts/editions) before
+  investigating a `404` on billing, usage or MFA routes.
+</Note>

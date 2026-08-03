@@ -1,0 +1,18 @@
+---
+title: "Artifacts"
+description: "Files an agent writes during a session, and running them."
+---
+
+When `artifacts_enabled` is set on an agent, it can write files during a run — a chart,
+a CSV, a script. They are stored per session.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/artifacts/{agent}/{user}/{session}` | List session artifacts |
+| GET | `/api/artifacts/{agent}/{user}/{session}/{filename}` | Get contents |
+| POST | `/api/artifacts/{agent}/{user}/{session}/{filename}/execute` | Execute |
+
+<Warning>
+  Executing an artifact runs code the model produced. Enable `artifacts_enabled` only
+  for agents whose operators you trust, and isolate the runtime accordingly.
+</Warning>

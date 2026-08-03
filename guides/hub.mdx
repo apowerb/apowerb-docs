@@ -1,0 +1,16 @@
+---
+title: "Agent Hub"
+description: "Publish an agent, let another workspace clone it."
+---
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/hub` | Browse published agents |
+| GET | `/api/hub/{hub_id}` | Details |
+| POST | `/api/hub/publish` | Publish — copies config, tools and instruction |
+| POST | `/api/hub/clone` | Clone into your workspace |
+| DELETE | `/api/hub/{hub_id}` | Remove from the Hub |
+
+Publishing copies the agent's configuration, not its data: sessions, indexed knowledge
+and connected integrations stay with the original workspace. A clone starts empty and
+needs its own tool configs.

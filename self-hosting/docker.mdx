@@ -1,0 +1,29 @@
+---
+title: "Docker Compose"
+description: "The reference self-hosting stack."
+---
+
+[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) holds no application
+code. It assembles [`apowerb/apowerb`](https://github.com/apowerb/apowerb) (the API)
+and [`apowerb/apowerb-ui`](https://github.com/apowerb/apowerb-ui) (the interface) and
+gives them a database.
+
+## Services
+
+| Service | Role | Default port |
+| --- | --- | --- |
+| `postgres` | Database | internal only |
+| `apowerb` | FastAPI API | 8000 |
+| `apowerb-ui` | Next.js interface | 3000 |
+
+See the [Quickstart](/quickstart) for the commands.
+
+## Images build from source
+
+The compose file builds the API and interface from the sibling clones. No system
+packages are installed in the images: `psycopg2-binary`, `asyncpg` and `cryptography`
+arrive as prebuilt wheels, and the health probes are written in Python and Node rather
+than shelling out to `curl`. The build therefore depends on no Debian mirror.
+
+Once `apowerb/*` images are published to a registry, the `build:` blocks become
+`image:` blocks and the source clones are no longer required.

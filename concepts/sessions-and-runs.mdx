@@ -1,0 +1,42 @@
+---
+title: "Sessions and runs"
+description: "Conversation state, blocking runs, streaming runs and traces."
+---
+
+A session holds conversation context for one agent and one user. Runs happen inside a
+session.
+
+## Endpoints
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/adk/sessions` | Create a session |
+| GET | `/api/adk/sessions/list` | List sessions |
+| GET | `/api/adk/sessions/{agent}/{user}/{session}` | Conversation history |
+| GET | `/api/adk/sessions/{agent}/{user}/{session}/trace` | Execution trace |
+| PATCH | `/api/adk/sessions/{agent}/{user}/{session}` | Update session state |
+| DELETE | `/api/adk/sessions/{agent}/{user}/{session}` | Delete |
+| POST | `/api/adk/run` | Run, blocking |
+| POST | `/api/adk/run_sse` | Run, streamed over SSE |
+| POST | `/api/adk/schedule_run` | Schedule a recurring run |
+| POST | `/api/adk/run_now` | Trigger immediately |
+
+## Running an agent
+
+```json
+POST /api/adk/run
+{
+  "agent_name": "My Assistant",
+  "user_id": "user@example.com",
+  "session_id": "session_001",
+  "new_message": {
+    "role": "user",
+    "parts": [{ "text": "What is the forecast for next month?" }]
+  },
+  "run_mode": "single",
+  "streaming": false
+}
+```
+
+For token-by-token output, post the same body to `/api/adk/run_sse` — see
+[Streaming](/guides/streaming).

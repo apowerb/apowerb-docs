@@ -1,0 +1,79 @@
+---
+title: "Quickstart"
+description: "Bring the API, the interface and a database up with Docker Compose."
+---
+
+The fastest way to see apowerb running is the
+[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) stack: Postgres, the
+API and the interface, wired together by a single `docker compose up`.
+
+## 1. Clone the three repositories
+
+They are expected to sit side by side — the compose file builds the API and the
+interface from source.
+
+```bash
+git clone https://github.com/apowerb/apowerb.git
+git clone https://github.com/apowerb/apowerb-ui.git
+git clone https://github.com/apowerb/apowerb-hosting.git
+```
+
+## 2. Generate secrets and start
+
+```bash
+cd apowerb-hosting
+cp .env.example .env
+./scripts/generate-secrets.sh
+docker compose up -d --build
+```
+
+`generate-secrets.sh` fills `ENCRYPT_KEY` and `TEST_TOKEN`. It never overwrites a
+value that is already set — see [Secrets](/self-hosting/secrets) for why that matters.
+
+## 3. Check it is up
+
+| Service | URL | Role |
+| --- | --- | --- |
+| Interface | `http://localhost:3000` | Next.js UI |
+| API | `http://localhost:8000` | FastAPI server |
+| API docs | `http://localhost:8000/docs` | Interactive Swagger UI |
+| Health | `http://localhost:8000/health` | Liveness probe |
+
+```bash
+curl -s http://localhost:8000/health
+```
+
+Ports are configurable in `.env`. Postgres stays on the internal Docker network and
+is not published.
+
+## 4. Create your first agent
+
+Authenticate, then create an agent through the API:
+
+```bash
+curl -X POST http://localhost:8000/api/agents \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_name": "My Assistant",
+    "agent_model": "anthropic/claude-sonnet-4-5-20250929",
+    "agent_description": "Specialized agent for data analysis",
+    "agent_instruction": "You are an expert data analyst.",
+    "agent_type": "llm",
+    "agent_tools": [],
+    "sub_agents": [],
+    "memory_enabled": false,
+    "artifacts_enabled": false,
+    "tags": ["analytics"]
+  }'
+```
+
+Then run it — see [Sessions and runs](/concepts/sessions-and-runs).
+
+## Not shipped yet
+
+- **Helm chart and Kubernetes manifests.** The Docker Compose path is tested
+  end to end; the Kubernetes equivalent is not, so it is not published.
+- **Published container images.** The compose file builds from source. Once
+  `apowerb/*` images are published, the `build:` blocks become `image:` blocks and
+  the source repositories are no longer needed.

@@ -1,0 +1,21 @@
+---
+title: "apowerb-ui"
+description: "The Next.js interface for the apowerb API."
+---
+
+[`apowerb-ui`](https://github.com/apowerb/apowerb-ui) is the reference web interface:
+agent editor, conversations, tool configuration, integrations, webhook manager, and
+knowledge base management.
+
+It talks to the API over the same public REST surface documented here — nothing in it
+is privileged. Any other client can replace it.
+
+```bash
+git clone https://github.com/apowerb/apowerb-ui.git
+cd apowerb-ui
+npm install
+npm run dev
+```
+
+Point it at your API with the variables in `.env.example`, then open
+`http://localhost:3000`.

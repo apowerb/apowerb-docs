@@ -1,0 +1,57 @@
+---
+title: "Webhooks"
+description: "Trigger agents from events in connected services."
+---
+
+apowerb can run an agent automatically when something happens in a connected service —
+today, when mail arrives. Two providers are supported: **Gmail** through Google
+Pub/Sub, and **Outlook** through Microsoft Graph subscriptions.
+
+```
+Email arrives → provider pushes a notification → apowerb receives it
+     → fetches the message → runs the associated agent → logs the result
+```
+
+## Subscription API
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/webhooks/subscriptions` | Create |
+| GET | `/api/webhooks/subscriptions` | List |
+| PATCH | `/api/webhooks/subscriptions/{id}` | Update agent, template or change type |
+| DELETE | `/api/webhooks/subscriptions/{id}` | Delete and unsubscribe |
+| POST | `/api/webhooks/subscriptions/{id}/renew` | Renew manually |
+| GET | `/api/webhooks/logs` | Execution logs |
+| GET | `/api/webhooks/logs/{log_id}` | One log entry |
+
+```json
+POST /api/webhooks/subscriptions
+{
+  "provider": "google_gmail",
+  "resource": "INBOX",
+  "agent_id": "AGENT_ID",
+  "change_type": "created",
+  "agent_message_template": "New email from {{ sender }}: {{ subject }}\n\n{{ body }}"
+}
+```
+
+## Automatic renewal
+
+| Provider | Expires after |
+| --- | --- |
+| Gmail watch | 7 days |
+| Outlook subscription | 3 days |
+
+A background task runs every six hours and renews anything expiring within twelve
+hours. If it fails, the subscription dies silently at expiry — watch the scheduler
+logs.
+
+## Troubleshooting
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| `403 — User not authorized` | Gmail cannot publish to the topic | Grant `gmail-api-push@system.gserviceaccount.com` the Publisher role |
+| `404 — Topic not found` | Wrong topic or project | Check `GMAIL_PUBSUB_PROJECT_ID` and `GMAIL_PUBSUB_TOPIC` |
+| Nothing arrives | Push subscription misconfigured | Verify the endpoint URL is public and correct |
+| `401 — Invalid credentials` | OAuth token expired | Reconnect the integration |
+| Watch expired | Renewal failed | Check scheduler logs, renew via the API |

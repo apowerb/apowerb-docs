@@ -1,0 +1,85 @@
+---
+title: "Installation"
+description: "Install the apowerb package from PyPI or from source and run the server."
+---
+
+## From PyPI
+
+```bash
+pip install apowerb
+```
+
+The package installs the `apowerb` CLI (a Typer application) alongside the library.
+
+<Info>
+  `apowerb` requires **Python 3.12 or later**. 3.11 is rejected: the code nests
+  identical quotes inside f-strings (PEP 701), which 3.11 cannot parse.
+</Info>
+
+### Optional extras
+
+| Extra | Adds |
+| --- | --- |
+| `s3` | `s3fs`, `fsspec`, `aiobotocore` — S3 storage and S3 indexing |
+
+```bash
+pip install "apowerb[s3]"
+```
+
+## From source
+
+```bash
+git clone https://github.com/apowerb/apowerb.git
+cd apowerb
+
+pip install uv
+uv venv
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
+
+uv sync
+uv pip install .
+cp .env.example .env
+```
+
+## Run the server
+
+<Tabs>
+  <Tab title="CLI">
+    ```bash
+    apowerb serve --host 0.0.0.0 --port 8000
+    ```
+  </Tab>
+  <Tab title="Uvicorn">
+    ```bash
+    uv run uvicorn apowerb.main:app --reload
+    ```
+  </Tab>
+</Tabs>
+
+The server listens on `http://127.0.0.1:8000/` by default, with interactive
+documentation at `/docs`.
+
+## CLI commands
+
+```bash
+apowerb serve --host 0.0.0.0 --port 8000
+
+apowerb agents list
+apowerb agents create
+apowerb agents delete <agent_id>
+
+apowerb tools list
+
+apowerb runs list
+```
+
+## Next
+
+<CardGroup cols={2}>
+  <Card title="Configuration" icon="sliders" href="/configuration">
+    Every environment variable, required and optional.
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/concepts/architecture">
+    What happens on startup, and where the code lives.
+  </Card>
+</CardGroup>

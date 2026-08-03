@@ -1,0 +1,44 @@
+---
+title: "Contributing"
+description: "How to propose a change."
+---
+
+Contributions go through pull requests on the relevant repository. The core is
+[`apowerb/apowerb`](https://github.com/apowerb/apowerb); documentation lives in
+[`apowerb/apowerb-docs`](https://github.com/apowerb/apowerb-docs).
+
+## Before you open a pull request
+
+<Steps>
+  <Step title="Open an issue first for anything non-trivial">
+    A bug report with a reproduction, or a short design note for a feature. It is
+    cheaper to disagree about the approach before the code exists.
+  </Step>
+  <Step title="Keep the change scoped">
+    One concern per pull request. Refactors that ride along with a fix make both harder
+    to review and to revert.
+  </Step>
+  <Step title="Write the test with the change">
+    A bug fix comes with a test that fails before it and passes after.
+  </Step>
+  <Step title="Run the checks">
+    ```bash
+    ruff check .
+    ruff format .
+    pytest
+    ```
+  </Step>
+</Steps>
+
+## Conventions
+
+- **Everything in the codebase is written in English** — code, comments, commit
+  messages, pull request descriptions, documentation.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
+  `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+- Python is type-annotated; new modules should pass `ruff` without exemptions.
+
+## Reporting a security issue
+
+Do not open a public issue for a vulnerability. Contact the maintainers directly so a
+fix can ship before the details are public.

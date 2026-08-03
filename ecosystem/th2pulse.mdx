@@ -1,0 +1,12 @@
+---
+title: "th2pulse"
+description: "OpenTelemetry collection and observability."
+---
+
+[`th2pulse`](https://github.com/apowerb/th2pulse) is a lightweight OpenTelemetry
+collection and observability library for the th2 and apowerb applications.
+
+It collects traces and metrics from the running services. For agent-level
+observability — which agent ran, with which tools, for how long — prefer the ADK
+callbacks, which see the agent tree; OpenTelemetry spans alone do not separate one
+agent's work from another's inside a shared invocation.

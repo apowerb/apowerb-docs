@@ -1,0 +1,37 @@
+---
+title: "RAG"
+description: "Index documents, URLs, SQL results and S3 buckets into per-agent knowledge bases."
+---
+
+RAG lets an agent answer from documents you provide. Indexing is delegated to the RAG
+service ([th2rag](/ecosystem/th2rag)), reachable at `RAG_BASE_URL`.
+
+```
+Upload documents → indexed by th2rag → the agent searches them when answering
+```
+
+## Sources
+
+| Source | Endpoint | Notes |
+| --- | --- | --- |
+| Files | `POST /api/rag/index-files` | PDF, CSV, TXT, DOCX… max 50 MB per file |
+| URL | `POST /api/rag/index-url` | Crawls and indexes a web page |
+| Database, SQL | `POST /api/rag/index-db` | Indexes the result of a SQL query |
+| Database, natural language | `POST /api/rag/index-db-nl` | Same, from a question |
+| S3 | `POST /api/rag/index-s3` | Indexes files from a bucket |
+
+## Following progress
+
+- Poll `GET /api/rag/status/{knowledge_id}`
+- Or stream `GET /api/rag/stream/{agent_id}?session_id=xxx` — events `connected`,
+  `status`, `complete`
+
+`GET /api/rag/knowledge/{agent_id}` lists what an agent currently has indexed.
+
+## Security
+
+- Path traversal is blocked on session and agent identifiers
+- URL indexing refuses localhost and private address ranges (SSRF protection)
+- Session ownership is validated on every call
+- Completion callbacks from th2rag are verified with an HMAC-SHA256 signature
+  (`RAG_WEBHOOK_SECRET`)

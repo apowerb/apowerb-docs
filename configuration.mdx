@@ -1,0 +1,117 @@
+---
+title: "Configuration"
+description: "Every environment variable read by the apowerb server."
+---
+
+Configuration is read from the environment, usually through a `.env` file created
+from `.env.example`.
+
+## Required
+
+| Variable | Description |
+| --- | --- |
+| `DB_HOST` | PostgreSQL host |
+| `DB_PORT` | Port (default `5432`) |
+| `DB_NAME` | Database name |
+| `DB_USER` | Database user |
+| `DB_PASSWORD` | Database password |
+| `DB_SCHEMA` | Schema (default `public`) |
+| `ENCRYPT_KEY` | Fernet key used for encryption at rest **and** JWT signing. Must be a urlsafe-base64 32-byte key — `Fernet.generate_key()` |
+| `TEST_TOKEN` | Development authentication token |
+
+<Warning>
+  `ENCRYPT_KEY` encrypts the OAuth tokens of every connected integration. Changing it
+  makes all previously connected integrations unreadable. Back it up with your other
+  secrets — see [Secrets](/self-hosting/secrets).
+</Warning>
+
+## Security and JWT
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `WORKING_MODE` | `development` | `development` or `production` |
+| `ALGORITHM` | `HS256` | JWT signing algorithm |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | `120` | Access token lifetime |
+| `ENCRYPT_PASS` | — | Encryption password |
+
+## CORS
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `FRONTEND_URLS` | `["http://localhost:3000"]` | Allowed origins, as a JSON array |
+
+## OAuth — user login
+
+| Variable | Description |
+| --- | --- |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_REDIRECT_URI` | GitHub login |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | Google login |
+| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` | Microsoft login (`common` for multi-tenant) |
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn login |
+
+## OAuth — workspace integrations
+
+These are **separate OAuth applications** from the login ones: they carry the scopes
+agents need to read Drive, send mail, or list Teams chats.
+
+| Variable | Description |
+| --- | --- |
+| `GOOGLE_INTEGRATION_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Google Workspace — Drive, Gmail, Calendar, Sheets, Docs |
+| `MICROSOFT_INTEGRATION_CLIENT_ID` / `_SECRET` / `_TENANT_ID` / `_REDIRECT_URI` | Microsoft 365 — Outlook, Teams, OneDrive, SharePoint |
+| `GITHUB_INTEGRATION_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | GitHub workspace integration |
+
+## Gmail Pub/Sub webhooks
+
+| Variable | Description |
+| --- | --- |
+| `GMAIL_PUBSUB_PROJECT_ID` | Google Cloud project hosting the topic |
+| `GMAIL_PUBSUB_TOPIC` | Topic name only, not the full path |
+
+See [Gmail webhooks](/guides/webhooks-gmail) for the full setup.
+
+## RAG and webhooks
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PUBLIC_BASE_URL` | `http://localhost:8000` | Public URL of this apowerb instance |
+| `RAG_WEBHOOK_SECRET` | `th2-webhook-default-secret` | HMAC-SHA256 secret for RAG webhooks |
+| `RAG_BASE_URL` | — | Base URL of the RAG service ([th2rag](/ecosystem/th2rag)) |
+
+<Warning>
+  `RAG_WEBHOOK_SECRET` ships with a default value. A secret left at its documented
+  default is not a secret — set it explicitly in production.
+</Warning>
+
+## S3 storage (optional)
+
+| Variable | Description |
+| --- | --- |
+| `STORAGE_MODE` | `local` or `s3` |
+| `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location |
+| `S3_ACCESS`, `S3_SECRET` | Credentials |
+
+## Stripe billing (optional)
+
+| Variable | Description |
+| --- | --- |
+| `STRIPE_SECRET_KEY` | Secret key |
+| `STRIPE_PUBLISHABLE_KEY` | Publishable key |
+| `STRIPE_WEBHOOK_SECRET` | Webhook signing secret |
+
+## Scheduler / Mage (optional)
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `BASE_URL` | `http://localhost:6789` | Mage AI URL |
+| `API_KEY` | — | Mage API key |
+| `OAUTH_TOKEN` | — | Mage OAuth token |
+| `PROJECT_NAME` | `default_repo` | Mage project |
+
+## Extensions
+
+| Variable | Description |
+| --- | --- |
+| `TH2_EXTENSIONS` | Comma-separated list of modules to plug in at startup |
+| `TH2_OVERLAY_MODULE` | Legacy single-module form, still honoured, loaded last |
+
+Empty means no extension: the core runs on its own. See [Editions](/concepts/editions).

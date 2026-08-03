@@ -1,0 +1,33 @@
+---
+title: "Release process"
+description: "How the Python package and the TypeScript SDK are published."
+---
+
+## Python — PyPI
+
+`apowerb` is published to [PyPI](https://pypi.org/project/apowerb/) from GitHub Actions
+using **trusted publishing** (OIDC): the workflow authenticates as the repository
+itself, so no long-lived API token is stored in the project.
+
+The workflow lives in `.github/workflows/pypi-publish.yml` and runs on a release.
+
+## npm — the TypeScript SDK
+
+The SDK is published from GitHub Actions with npm **trusted publishing**, and the
+resulting package carries a provenance attestation naming the repository, the workflow,
+the tag and the runner.
+
+<Warning>
+  Two things are easy to get wrong here:
+
+  - npm refuses to declare a trusted publisher for a package that **does not exist
+    yet**. The very first publish has to happen another way; only then can trusted
+    publishing be configured. PyPI does not have this constraint.
+  - `--provenance` does not work from a local machine. Provenance requires a hosted CI
+    runner.
+</Warning>
+
+## Versioning
+
+Versions follow [semantic versioning](https://semver.org/). The changelog is the
+GitHub releases page of each repository.

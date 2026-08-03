@@ -1,0 +1,93 @@
+---
+title: "Gmail webhooks"
+description: "Wire Gmail push notifications through Google Pub/Sub."
+---
+
+```
+Gmail  ──push──▶  Google Pub/Sub  ──HTTP POST──▶  apowerb
+                  (topic)                          /api/webhooks/gmail/notifications
+                                                        │
+                                                        ▼
+                                                  fetch new mail via the Gmail API
+                                                        │
+                                                        ▼
+                                                  run the associated agent
+```
+
+## Prerequisites
+
+- A Google Cloud project with billing enabled
+- Gmail API and Cloud Pub/Sub API enabled
+- A Google OAuth 2.0 application for workspace integration
+- A publicly reachable URL for this apowerb instance
+
+## Setup
+
+<Steps>
+  <Step title="Enable the APIs">
+    ```bash
+    gcloud services enable gmail.googleapis.com pubsub.googleapis.com \
+      --project=YOUR_PROJECT_ID
+    ```
+  </Step>
+  <Step title="Create the topic">
+    ```bash
+    gcloud pubsub topics create gmail-notifications \
+      --project=YOUR_PROJECT_ID
+    ```
+  </Step>
+  <Step title="Let Gmail publish to it">
+    ```bash
+    gcloud pubsub topics add-iam-policy-binding gmail-notifications \
+      --project=YOUR_PROJECT_ID \
+      --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
+      --role="roles/pubsub.publisher"
+    ```
+
+    <Note>
+      In the Cloud Console the "Publisher" role may not appear in the dropdown. Type
+      "publisher" in the search box, or use the command above.
+    </Note>
+  </Step>
+  <Step title="Create the push subscription">
+    ```bash
+    gcloud pubsub subscriptions create gmail-notifications-push \
+      --topic=gmail-notifications \
+      --push-endpoint=https://YOUR_DOMAIN/api/webhooks/gmail/notifications \
+      --project=YOUR_PROJECT_ID
+    ```
+  </Step>
+  <Step title="Configure OAuth 2.0">
+    In Google Cloud Console → Credentials, create an OAuth 2.0 Client ID of type
+    *Web application*, add the redirect URI
+    `https://YOUR_DOMAIN/integrations/google/callback`, and the scope
+    `https://www.googleapis.com/auth/gmail.readonly`.
+  </Step>
+  <Step title="Set the environment">
+    ```bash
+    GOOGLE_INTEGRATION_CLIENT_ID=your-client-id.apps.googleusercontent.com
+    GOOGLE_INTEGRATION_CLIENT_SECRET=GOCSPX-xxxxxxxxxx
+    GOOGLE_INTEGRATION_REDIRECT_URI=https://YOUR_DOMAIN/integrations/google/callback
+
+    GMAIL_PUBSUB_PROJECT_ID=your-gcp-project-id
+    GMAIL_PUBSUB_TOPIC=gmail-notifications
+
+    PUBLIC_BASE_URL=https://YOUR_DOMAIN
+    ```
+  </Step>
+  <Step title="Connect the account and subscribe">
+    Connect Google (Gmail) from the interface, then create the subscription:
+
+    ```bash
+    curl -X POST https://YOUR_DOMAIN/api/webhooks/subscriptions \
+      -H "Authorization: Bearer TOKEN" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "provider": "google_gmail",
+        "resource": "INBOX",
+        "agent_id": "AGENT_ID",
+        "change_type": "created"
+      }'
+    ```
+  </Step>
+</Steps>
