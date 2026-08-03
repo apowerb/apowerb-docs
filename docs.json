@@ -34,24 +34,35 @@
               "concepts/architecture",
               "concepts/editions",
               "concepts/agents",
-              "concepts/orchestration",
               "concepts/sessions-and-runs",
-              "concepts/tools"
+              "concepts/tools",
+              "guides/artifacts",
+              "guides/hub"
             ]
           },
           {
-            "group": "Guides",
+            "group": "Super agents",
             "pages": [
+              "concepts/orchestration",
               "guides/rag",
               "guides/text-to-sql",
+              "guides/sdk"
+            ]
+          },
+          {
+            "group": "Webhooks & streaming",
+            "pages": [
               "guides/webhooks",
               "guides/webhooks-gmail",
               "guides/webhooks-outlook",
+              "guides/streaming"
+            ]
+          },
+          {
+            "group": "Integrations & scheduling",
+            "pages": [
               "guides/integrations",
-              "guides/streaming",
-              "guides/scheduler",
-              "guides/hub",
-              "guides/artifacts"
+              "guides/scheduler"
             ]
           },
           {

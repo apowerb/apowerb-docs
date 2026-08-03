@@ -1,0 +1,73 @@
+---
+title: "JavaScript SDK"
+description: "Drive the API from a browser or from Node, without writing fetch calls."
+---
+
+[`@apowerb/apowerb-sdk`](https://www.npmjs.com/package/@apowerb/apowerb-sdk) is the
+JavaScript client for the apowerb backend: agents, tools, RAG, BI, webhooks, billing
+and skills. **143 functions, no dependencies, no React and no Next code** — it runs in
+a browser and in Node alike.
+
+```bash
+npm i @apowerb/apowerb-sdk
+```
+
+Published from GitHub Actions through npm trusted publishing, with a provenance
+attestation naming the repository, the workflow and the tag.
+
+## Two ways to use it
+
+<Tabs>
+  <Tab title="Served by the app">
+    With no configuration, requests go out relative to `/api/...` and the token is read
+    from `localStorage`. This is what the reference interface does.
+
+    ```js
+    import { listAgents } from "@apowerb/apowerb-sdk";
+
+    const agents = await listAgents(); // GET /api/agents
+    ```
+  </Tab>
+  <Tab title="Anywhere else">
+    Point it at the backend of your choice and tell it where the token lives.
+
+    ```js
+    import { configureClient, listAgents } from "@apowerb/apowerb-sdk";
+
+    configureClient({
+      baseUrl: "https://your-apowerb-host",
+      storage: { getToken: () => process.env.APOWERB_TOKEN },
+    });
+
+    const agents = await listAgents(); // GET https://your-apowerb-host/api/agents
+    ```
+  </Tab>
+</Tabs>
+
+## Configuration
+
+`configureClient(options)` — omitted keys keep their current value.
+
+| Option | Default | Role |
+| --- | --- | --- |
+| `baseUrl` | `""` | Backend root. Empty means relative requests. A trailing slash is tolerated — `.../` + `/api/x` would otherwise produce `//api/x`, which some reverse proxies read as a protocol-relative host. |
+| `storage` | `localStorage` | Must expose `getToken()`, ideally `setToken()` and `clear()` |
+| `onUnauthorized` | an `auth:unauthorized` event on `window` | Called on a final 401. Outside a browser it does nothing rather than throwing. |
+
+Companion functions: `getClientConfig()` reads the current settings,
+`resetClientConfig()` restores the defaults — useful between tests — and `apiUrl(path)`
+builds the absolute URL of an API path.
+
+## Entry points
+
+| Import | Contents |
+| --- | --- |
+| `@apowerb/apowerb-sdk` | everything: API calls, auth helpers, configuration |
+| `@apowerb/apowerb-sdk/config` | configuration only |
+| `@apowerb/apowerb-sdk/authStorage` | token storage and the auth calls |
+
+<Note>
+  The SDK covers the endpoints of the [API reference](/api-reference/introduction) — the
+  same surface, one function per endpoint. Capabilities absent from your edition answer
+  `404`; see [Editions](/concepts/editions).
+</Note>
