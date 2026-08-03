@@ -1006,7 +1006,7 @@
           "Evaluation"
         ],
         "summary": "Add Session To Eval Set",
-        "operationId": "add_session_to_eval_set_apps__app_name__eval_sets__eval_set_id__add_session_post",
+        "operationId": "add_session_to_eval_set_apps__app_name__eval_sets__eval_set_id__add_session_post_hyphenated",
         "parameters": [
           {
             "name": "app_name",
