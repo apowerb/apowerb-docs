@@ -23,15 +23,25 @@ Tokens are signed with `ENCRYPT_KEY` and expire after `ACCESS_TOKEN_EXPIRE_MINUT
 (120 by default). Refresh with `POST /api/auth/refresh-token`; `POST /api/auth/logout`
 clears the refresh cookie.
 
-## OAuth login
+## Account lifecycle
 
-`POST /api/users/oauth/{provider}/callback` completes a login started with GitHub,
-Google, Microsoft or LinkedIn.
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| POST | `/api/auth/forgot-password` | Start a password reset |
+| POST | `/api/auth/reset-password` | Complete it with the emailed token |
+| POST | `/api/auth/verify-email` | Confirm an address |
+| POST | `/api/auth/resend-verification` | Send the confirmation again |
 
-## Multi-factor authentication
+## What is not here
 
-TOTP-based MFA is part of a commercial edition. On an open-source build,
-`/api/auth/mfa/*` answers `404` — see [Editions](/concepts/editions).
+Two things belong to commercial editions and are **absent** from this build:
+
+- **Signing in with an identity provider** — GitHub, Google, Microsoft, LinkedIn. The
+  open-source core authenticates with email and password only.
+- **Multi-factor authentication.** `/api/auth/mfa/*` does not exist; it answers `404`.
+
+See [Editions](/concepts/editions). Do not read those `404`s as a missing object —
+they mean the capability is not in this edition.
 
 <Warning>
   `ENCRYPT_KEY` signs tokens. If it is empty, token verification degenerates: a required

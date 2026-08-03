@@ -17,7 +17,12 @@ from `.env.example`.
 | `DB_PASSWORD` | Database password |
 | `DB_SCHEMA` | Schema (default `public`) |
 | `ENCRYPT_KEY` | Fernet key used for encryption at rest **and** JWT signing. Must be a urlsafe-base64 32-byte key — `Fernet.generate_key()` |
-| `TEST_TOKEN` | Development authentication token |
+
+<Note>
+  `.env.example` also carries `TEST_TOKEN`. Nothing in the server reads it — it is
+  leftover from an earlier version. Setting it changes nothing; leaving it out
+  breaks nothing.
+</Note>
 
 <Warning>
   `ENCRYPT_KEY` encrypts the OAuth tokens of every connected integration. Changing it
@@ -40,25 +45,23 @@ from `.env.example`.
 | --- | --- | --- |
 | `FRONTEND_URLS` | `["http://localhost:3000"]` | Allowed origins, as a JSON array |
 
-## OAuth — user login
-
-| Variable | Description |
-| --- | --- |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` / `GITHUB_REDIRECT_URI` | GitHub login |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` | Google login |
-| `MICROSOFT_CLIENT_ID` / `MICROSOFT_CLIENT_SECRET` / `MICROSOFT_TENANT_ID` | Microsoft login (`common` for multi-tenant) |
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | LinkedIn login |
-
 ## OAuth — workspace integrations
 
-These are **separate OAuth applications** from the login ones: they carry the scopes
-agents need to read Drive, send mail, or list Teams chats.
+These OAuth applications carry the scopes agents need to read Drive, send mail, or
+list Teams chats. They authorise an agent to act on a service — they are not how a
+user signs in.
 
 | Variable | Description |
 | --- | --- |
 | `GOOGLE_INTEGRATION_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | Google Workspace — Drive, Gmail, Calendar, Sheets, Docs |
 | `MICROSOFT_INTEGRATION_CLIENT_ID` / `_SECRET` / `_TENANT_ID` / `_REDIRECT_URI` | Microsoft 365 — Outlook, Teams, OneDrive, SharePoint |
 | `GITHUB_INTEGRATION_CLIENT_ID` / `_SECRET` / `_REDIRECT_URI` | GitHub workspace integration |
+
+<Note>
+  Signing in **with** an identity provider — GitHub, Google, Microsoft, LinkedIn — is
+  part of a commercial edition and is absent here. The open-source build authenticates
+  with email and password. See [Editions](/concepts/editions).
+</Note>
 
 ## Gmail Pub/Sub webhooks
 

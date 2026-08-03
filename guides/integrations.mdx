@@ -1,12 +1,16 @@
 ---
 title: "Integrations"
-description: "OAuth for login, and OAuth for the services agents act on."
+description: "Connect the services your agents act on."
 ---
 
-There are two distinct categories of OAuth, backed by two distinct applications:
+An integration connects an external service so agent tools can act on it — read a
+Drive folder, send an Outlook mail, list Teams chats.
 
-1. **User login** — sign up and sign in with GitHub, Google, Microsoft or LinkedIn.
-2. **Workspace integrations** — connect an external service so agent tools can use it.
+<Note>
+  This is not how users sign in. Signing in **with** an identity provider belongs to a
+  commercial edition and is absent from the open-source build, which authenticates with
+  email and password. See [Editions](/concepts/editions).
+</Note>
 
 ## Connecting a workspace integration
 

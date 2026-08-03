@@ -22,13 +22,27 @@ spec = json.load(sys.stdin)
 COMMERCIAL_TAGS = {"Billing", "usage", "prospection", "campaigns"}
 COMMERCIAL_PATH_MARKERS = ("/mfa",)
 
+# Identity-provider sign-in. These are not in the open-source core:
+# src/apowerb/users/router.py declares only /, /me, /{user_id} and
+# /email/{user_email}. The provider routes come from the auth_advanced brick.
+COMMERCIAL_PATHS = {
+    "/api/users/github",
+    "/api/users/google",
+    "/api/users/microsoft",
+    "/api/users/linkedin",
+}
+
 removed = []
 for path in list(spec["paths"]):
     tags = set()
     for _method, operation in spec["paths"][path].items():
         if isinstance(operation, dict):
             tags |= set(operation.get("tags", []))
-    if tags & COMMERCIAL_TAGS or any(m in path for m in COMMERCIAL_PATH_MARKERS):
+    if (
+        tags & COMMERCIAL_TAGS
+        or path in COMMERCIAL_PATHS
+        or any(m in path for m in COMMERCIAL_PATH_MARKERS)
+    ):
         removed.append(path)
         del spec["paths"][path]
 
