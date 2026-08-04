@@ -134,7 +134,7 @@
           },
           {
             "group": "Monitoring & Evaluation",
-            "icon": "pulse",
+            "icon": "magnifying-glass-chart",
             "pages": [
               {
                 "group": "Logs",
@@ -246,8 +246,8 @@
                 "pages": ["ecosystem/th2rag"]
               },
               {
-                "group": "Monitoring & Evaluation",
-                "icon": "pulse",
+                "group": "Monitoring",
+                "icon": "file-lines",
                 "pages": ["ecosystem/th2pulse"]
               },
               {
