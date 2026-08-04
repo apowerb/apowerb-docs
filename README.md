@@ -25,7 +25,7 @@ installation.mdx       PyPI and from-source paths
 configuration.mdx      every environment variable
 concepts/              architecture, editions, agents, orchestration, sessions, tools
 guides/                RAG, Text-to-SQL, webhooks, integrations, streaming, scheduler…
-self-hosting/          Docker, database, secrets, production checks
+deployment/          Docker, database, secrets, production checks
 ecosystem/             apowerb-ui, th2rag, th2etl, th2pulse
 contributing/          contributing, development setup, release process
 api-reference/         narrative pages + openapi.json (generated)

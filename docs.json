@@ -115,7 +115,7 @@
               {
                 "group": "JavaScript SDK",
                 "icon": "code",
-                "pages": ["guides/sdk"]
+                "pages": ["ecosystem/javascript-sdk"]
               },
               {
                 "group": "Web Interface",
@@ -213,6 +213,11 @@
                 "group": "Helm",
                 "icon": "cubes",
                 "pages": ["deployment/helmchart"]
+              },
+              {
+                "group": "Secrets",
+                "icon": "lock",
+                "pages": ["deployment/secrets"]
               },
               {
                 "group": "Virtual Machines",
