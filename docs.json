@@ -133,9 +133,25 @@
             ]
           },
           {
-            "group": "Monitoring",
+            "group": "Monitoring & Evaluation",
             "icon": "pulse",
-            "pages": ["ecosystem/th2pulse"]
+            "pages": [
+              {
+                "group": "Logs",
+                "icon": "file-lines",
+                "pages": ["monitoring/logs"]
+              },
+              {
+                "group": "Evaluations",
+                "icon": "check-double",
+                "pages": ["monitoring/evaluations"]
+              },
+              {
+                "group": "Guardrails",
+                "icon": "shield-check",
+                "pages": ["monitoring/guardrails"]
+              }
+            ]
           },
           {
             "group": "Integrations",
@@ -230,7 +246,7 @@
                 "pages": ["ecosystem/th2rag"]
               },
               {
-                "group": "Monitoring",
+                "group": "Monitoring & Evaluation",
                 "icon": "pulse",
                 "pages": ["ecosystem/th2pulse"]
               },
