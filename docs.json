@@ -50,7 +50,8 @@
               "concepts/orchestration",
               "guides/rag",
               "guides/text-to-sql",
-              "guides/sdk"
+              "guides/sdk",
+              "guides/bi"
             ]
           },
           {
