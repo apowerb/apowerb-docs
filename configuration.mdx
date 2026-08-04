@@ -85,13 +85,13 @@ See [Gmail webhooks](/guides/integrations/google) for the full setup.
   default is not a secret — set it explicitly in production.
 </Warning>
 
-## S3 storage (optional)
+## Storage (optional)
 
 | Variable | Description |
 | --- | --- |
-| `STORAGE_MODE` | `local` or `s3` |
-| `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location |
-| `S3_ACCESS`, `S3_SECRET` | Credentials |
+| `STORAGE_MODE` | `local`, `s3` (or any S3-compatible storage), or `azure` (coming soon) |
+| `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location for S3-compatible storage |
+| `S3_ACCESS`, `S3_SECRET` | Credentials for S3-compatible storage |
 
 ## Scheduler
 
