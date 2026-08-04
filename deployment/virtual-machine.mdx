@@ -1,0 +1,14 @@
+---
+title: "Virtual Machine"
+description: "Deploying apowerb on a Virtual Machine with Traefik."
+---
+
+For a single-host deployment, overlay the Traefik HTTPS compose file on top of the existing stack.
+
+```bash
+cp .env.example .env
+# set APP_HOST and ACME_EMAIL in .env
+docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+```
+
+The app is served through `https://$APP_HOST`.

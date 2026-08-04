@@ -1,0 +1,15 @@
+---
+title: "Helm Chart"
+description: "Deploying apowerb using Helm."
+---
+
+Install the chart from the local source tree.
+
+```bash
+helm upgrade --install apowerb ./helm/apowerb \
+  --namespace apowerb \
+  --create-namespace \
+  --values ./helm/apowerb/values.yaml
+```
+
+To enable ingress, set `ingress.enabled: true` in `helm/apowerb/values.yaml`.

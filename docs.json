@@ -24,66 +24,128 @@
             "group": "Get started",
             "icon": "rocket",
             "pages": [
-              "index",
-              "quickstart",
-              "installation",
-              "configuration"
+              {
+                "group": "Introduction",
+                "icon": "house",
+                "pages": ["index"]
+              },
+              {
+                "group": "Quickstart",
+                "icon": "bolt",
+                "pages": ["quickstart"]
+              },
+              {
+                "group": "Installation",
+                "icon": "download",
+                "pages": ["installation"]
+              },
+              {
+                "group": "Configuration",
+                "icon": "gear",
+                "pages": ["configuration"]
+              }
             ]
           },
           {
             "group": "Concepts",
             "icon": "layers",
             "pages": [
-              "concepts/architecture",
-              "concepts/editions",
-              "concepts/agents",
-              "concepts/sessions-and-runs",
-              "concepts/tools",
-              "guides/artifacts",
-              "guides/hub"
+              {
+                "group": "Architecture",
+                "icon": "network-wired",
+                "pages": ["concepts/architecture"]
+              },
+              {
+                "group": "Editions & Extensions",
+                "icon": "box",
+                "pages": ["concepts/editions"]
+              },
+              {
+                "group": "Agents",
+                "icon": "robot",
+                "pages": ["concepts/agents", "concepts/orchestration"]
+              },
+              {
+                "group": "Sessions & Runs",
+                "icon": "play",
+                "pages": ["concepts/sessions-and-runs"]
+              },
+              {
+                "group": "Tools",
+                "icon": "wrench",
+                "pages": ["concepts/tools"]
+              },
+              {
+                "group": "Artifacts",
+                "icon": "box-archive",
+                "pages": ["guides/artifacts"]
+              },
+              {
+                "group": "Hub",
+                "icon": "store",
+                "pages": ["guides/hub"]
+              }
             ]
           },
           {
             "group": "Super agents",
             "icon": "sparkles",
             "pages": [
-              "concepts/orchestration",
-              "guides/rag",
-              "guides/text-to-sql",
-              "guides/bi"
+              {
+                "group": "RAG",
+                "icon": "book-open-cover",
+                "pages": ["guides/rag"]
+              },
+              {
+                "group": "Data Analyst",
+                "icon": "database",
+                "pages": ["guides/text-to-sql"]
+              },
+              {
+                "group": "BI & Dashboards",
+                "icon": "chart-pie",
+                "pages": ["guides/bi"]
+              }
             ]
           },
           {
             "group": "Frontend",
             "icon": "desktop",
             "pages": [
-              "guides/sdk",
-              "ecosystem/apowerb-ui"
+              {
+                "group": "JavaScript SDK",
+                "icon": "code",
+                "pages": ["guides/sdk"]
+              },
+              {
+                "group": "Web Interface",
+                "icon": "window",
+                "pages": ["ecosystem/apowerb-ui"]
+              }
             ]
           },
           {
-            "group": "Webhooks & Automation",
+            "group": "Automation",
             "icon": "webhook",
             "pages": [
               "guides/webhooks",
-              {
-                "group": "Gmail",
-                "icon": "google",
-                "pages": ["guides/webhooks-gmail"]
-              },
-              {
-                "group": "Outlook",
-                "icon": "microsoft",
-                "pages": ["guides/webhooks-outlook"]
-              },
-              "guides/scheduler"
+              "guides/orchestrator"
             ]
           },
           {
-            "group": "Integrations & Tools",
+            "group": "Monitoring",
+            "icon": "pulse",
+            "pages": ["ecosystem/th2pulse"]
+          },
+          {
+            "group": "Integrations",
             "icon": "puzzle-piece",
             "pages": [
-              "guides/integrations/overview",
+              {
+                "group": "Overview",
+                "icon": "info",
+                "pages": ["guides/integrations/overview"]
+              },
               {
                 "group": "Google",
                 "icon": "google",
@@ -93,10 +155,28 @@
                 "group": "Microsoft",
                 "icon": "microsoft",
                 "pages": ["guides/integrations/microsoft"]
+              }
+            ]
+          },
+          {
+            "group": "Tools & Skills",
+            "icon": "wrench",
+            "pages": [
+              {
+                "group": "Tools",
+                "icon": "toolbox",
+                "pages": ["guides/tools"]
               },
-              "guides/tools",
-              "guides/mcp",
-              "guides/skills"
+              {
+                "group": "MCP",
+                "icon": "server",
+                "pages": ["guides/mcp"]
+              },
+              {
+                "group": "Skills",
+                "icon": "lightbulb",
+                "pages": ["guides/skills"]
+              }
             ]
           },
           {
@@ -104,23 +184,36 @@
             "icon": "server",
             "pages": [
               {
-                "group": "Docker",
+                "group": "Docker Compose",
                 "icon": "docker",
                 "pages": ["deployment/dockercompose"]
               },
               {
                 "group": "Kubernetes",
-                "icon": "kubernetes",
-                "pages": ["deployment/kubernetes", "deployment/helmchart"]
+                "icon": "cog",
+                "pages": ["deployment/kubernetes"]
               },
-              "deployment/virtual-machines"
+              {
+                "group": "Helm",
+                "icon": "cubes",
+                "pages": ["deployment/helmchart"]
+              },
+              {
+                "group": "Virtual Machines",
+                "icon": "linux",
+                "pages": ["deployment/virtual-machines"]
+              }
             ]
           },
           {
             "group": "Ecosystem",
             "icon": "globe",
             "pages": [
-              "ecosystem/overview",
+              {
+                "group": "Overview",
+                "icon": "info",
+                "pages": ["ecosystem/overview"]
+              },
               {
                 "group": "Core",
                 "icon": "apowerb",
@@ -136,8 +229,16 @@
                 "icon": "database",
                 "pages": ["ecosystem/th2rag"]
               },
-              "ecosystem/th2etl",
-              "ecosystem/th2pulse"
+              {
+                "group": "Monitoring",
+                "icon": "pulse",
+                "pages": ["ecosystem/th2pulse"]
+              },
+              {
+                "group": "Automation",
+                "icon": "bolt",
+                "pages": ["ecosystem/th2etl"]
+              }
             ]
           },
           {
