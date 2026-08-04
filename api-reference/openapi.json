@@ -27522,17 +27522,6 @@
             ],
             "title": "Plan"
           },
-          "stripe_customer_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Stripe Customer Id"
-          },
           "mfa_enabled": {
             "type": "boolean",
             "title": "Mfa Enabled",

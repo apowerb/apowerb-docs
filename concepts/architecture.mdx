@@ -33,6 +33,26 @@ src/apowerb/
 
 At runtime the server also creates `agents_pool/`, `artifacts_store/` and `uploads/`.
 
+## Runtime architecture
+
+```mermaid
+flowchart LR
+    Client[Clients / API consumers] --> API[FastAPI application]
+    API --> Core[Core services\nagents, RAG, tools, scheduler]
+    API --> ADK[Google ADK runtime]
+    Core --> DB[(Relational database)]
+    Core --> Store[(Artifacts / uploads storage)]
+    Core --> Pool[agents_pool/]
+    ADK --> Tools[Tools store + skills store]
+    Core --> Ext[Extensions]
+    Webhooks[Webhook providers] --> API
+    OAuth[OAuth providers] --> API
+```
+
+This runtime view highlights the main execution path: incoming requests reach the FastAPI
+entry point, the app bootstraps the internal services and ADK runtime, and persistence is
+kept in the database plus the artifact storage layer.
+
 ## Startup sequence
 
 <Steps>
@@ -74,7 +94,6 @@ At runtime the server also creates `agents_pool/`, `artifacts_store/` and `uploa
 | `webhook_logs` | Execution history — trigger event, agent response, duration, status |
 | `notifications` | Per-user notifications, read state |
 | `transactions` | Credit movements — purchase, usage, refund, bonus |
-| `credit_purchases` | Stripe checkout sessions |
 
 ## Supported models
 

@@ -18,9 +18,11 @@
     "tabs": [
       {
         "tab": "Documentation",
+        "icon": "book-open",
         "groups": [
           {
             "group": "Get started",
+            "icon": "rocket",
             "pages": [
               "index",
               "quickstart",
@@ -30,6 +32,7 @@
           },
           {
             "group": "Concepts",
+            "icon": "layers",
             "pages": [
               "concepts/architecture",
               "concepts/editions",
@@ -42,6 +45,7 @@
           },
           {
             "group": "Super agents",
+            "icon": "sparkles",
             "pages": [
               "concepts/orchestration",
               "guides/rag",
@@ -51,6 +55,7 @@
           },
           {
             "group": "Webhooks & streaming",
+            "icon": "wifi",
             "pages": [
               "guides/webhooks",
               "guides/webhooks-gmail",
@@ -60,6 +65,7 @@
           },
           {
             "group": "Integrations & scheduling",
+            "icon": "link",
             "pages": [
               "guides/integrations",
               "guides/scheduler"
@@ -67,6 +73,7 @@
           },
           {
             "group": "Self-hosting",
+            "icon": "server",
             "pages": [
               "self-hosting/docker",
               "self-hosting/database",
@@ -76,6 +83,7 @@
           },
           {
             "group": "Ecosystem",
+            "icon": "globe",
             "pages": [
               "ecosystem/overview",
               "ecosystem/apowerb-ui",
@@ -86,6 +94,7 @@
           },
           {
             "group": "Contributing",
+            "icon": "heart",
             "pages": [
               "contributing/contributing",
               "contributing/development",
@@ -96,9 +105,11 @@
       },
       {
         "tab": "API reference",
+        "icon": "code",
         "groups": [
           {
             "group": "Overview",
+            "icon": "info",
             "pages": [
               "api-reference/introduction",
               "api-reference/authentication",
@@ -107,6 +118,7 @@
           },
           {
             "group": "Endpoints",
+            "icon": "database",
             "openapi": "api-reference/openapi.json"
           }
         ]
@@ -136,6 +148,7 @@
     "links": [
       {
         "label": "Issues",
+        "icon": "bug",
         "href": "https://github.com/apowerb/apowerb/issues"
       }
     ],
