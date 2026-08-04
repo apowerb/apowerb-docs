@@ -1,10 +1,13 @@
 ---
-title: "RAG"
+title: "Business knowledge (RAG)"
 description: "Index documents, URLs, SQL results and S3 buckets into per-agent knowledge bases."
 ---
 
-RAG lets an agent answer from documents you provide. Indexing is delegated to the RAG
+Business knowledge (RAG) lets an agent answer from documents you provide. Indexing is delegated to the RAG
 service ([th2rag](/ecosystem/th2rag)), reachable at `RAG_BASE_URL`.
+
+## Use Case: FAQ Automation
+Automatically answering common customer or internal questions based on your support knowledge base.
 
 ```
 Upload documents → indexed by th2rag → the agent searches them when answering

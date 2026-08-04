@@ -88,11 +88,11 @@
             ]
           },
           {
-            "group": "Super agents",
+            "group": "Business Agents",
             "icon": "sparkles",
             "pages": [
               {
-                "group": "RAG",
+                "group": "Business knowledge (RAG)",
                 "icon": "book-open-cover",
                 "pages": ["guides/rag"]
               },
