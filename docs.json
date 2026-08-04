@@ -123,6 +123,11 @@
           "anchor": "PyPI",
           "href": "https://pypi.org/project/apowerb/",
           "icon": "python"
+        },
+        {
+          "anchor": "Discord",
+          "href": "https://discord.com/channels/1470717940075597896",
+          "icon": "discord"
         }
       ]
     }
@@ -142,6 +147,7 @@
   "footer": {
     "socials": {
       "github": "https://github.com/apowerb",
+      "discord": "https://discord.com/channels/1470717940075597896",
       "website": "https://thaink2.com"
     }
   }
