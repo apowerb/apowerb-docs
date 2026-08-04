@@ -1,0 +1,42 @@
+---
+title: "Docker Compose"
+description: "The reference self-hosting stack."
+---
+
+[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) holds no application
+code. It assembles [`apowerb/apowerb`](https://github.com/apowerb/apowerb) (the API)
+and [`apowerb/apowerb-ui`](https://github.com/apowerb/apowerb-ui) (the interface) and
+gives them a database.
+
+## Deployment options
+
+`apowerb-hosting` repository provides the following deployment assets for the stack:
+
+- **Docker Compose**: Uses published images from Docker Hub.
+- **Kubernetes**: Static manifests.
+- **Helm**: Local source tree chart.
+- **Single VM / HTTPS with Traefik**: Overlay Traefik HTTPS configuration.
+
+See the [GitHub repository](https://github.com/apowerb/apowerb-hosting) for full configuration details and scripts.
+
+## Images build from source
+
+The compose file builds the API and interface from the sibling clones. No system
+packages are installed in the images: `psycopg2-binary`, `asyncpg` and `cryptography`
+arrive as prebuilt wheels, and the health probes are written in Python and Node rather
+than shelling out to `curl`. The build therefore depends on no Debian mirror.
+
+Once `apowerb/*` images are published to a registry, the `build:` blocks become
+`image:` blocks and the source clones are no longer required.
+
+## Published assets
+
+- **Backend image**: [`apowerb/apowerb` on Docker Hub](https://hub.docker.com/r/apowerb/apowerb)
+- **Frontend image**: [`apowerb/apowerb-ui` on Docker Hub](https://hub.docker.com/r/apowerb/apowerb-ui)
+- **Backend package**: [`apowerb/apowerb` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
+- **Frontend package**: [`apowerb/apowerb-ui` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
+
+## Helm chart OCI registries
+
+- **Docker Hub chart**: [oci://registry-1.docker.io/apowerb/apowerb](https://hub.docker.com/r/apowerb/apowerb)
+- **GitHub Container Registry chart**: [oci://ghcr.io/apowerb/apowerb](https://github.com/orgs/apowerb/packages)

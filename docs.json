@@ -50,36 +50,70 @@
               "concepts/orchestration",
               "guides/rag",
               "guides/text-to-sql",
-              "guides/sdk",
               "guides/bi"
             ]
           },
           {
-            "group": "Webhooks & streaming",
-            "icon": "wifi",
+            "group": "Frontend",
+            "icon": "desktop",
             "pages": [
-              "guides/webhooks",
-              "guides/webhooks-gmail",
-              "guides/webhooks-outlook",
-              "guides/streaming"
+              "guides/sdk",
+              "ecosystem/apowerb-ui"
             ]
           },
           {
-            "group": "Integrations & scheduling",
-            "icon": "link",
+            "group": "Webhooks & Automation",
+            "icon": "webhook",
             "pages": [
-              "guides/integrations",
+              "guides/webhooks",
+              {
+                "group": "Gmail",
+                "icon": "google",
+                "pages": ["guides/webhooks-gmail"]
+              },
+              {
+                "group": "Outlook",
+                "icon": "microsoft",
+                "pages": ["guides/webhooks-outlook"]
+              },
               "guides/scheduler"
             ]
           },
           {
-            "group": "Self-hosting",
+            "group": "Integrations & Tools",
+            "icon": "puzzle-piece",
+            "pages": [
+              "guides/integrations/overview",
+              {
+                "group": "Google",
+                "icon": "google",
+                "pages": ["guides/integrations/google"]
+              },
+              {
+                "group": "Microsoft",
+                "icon": "microsoft",
+                "pages": ["guides/integrations/microsoft"]
+              },
+              "guides/tools",
+              "guides/mcp",
+              "guides/skills"
+            ]
+          },
+          {
+            "group": "Deployment",
             "icon": "server",
             "pages": [
-              "self-hosting/docker",
-              "self-hosting/database",
-              "self-hosting/secrets",
-              "self-hosting/production"
+              {
+                "group": "Docker",
+                "icon": "docker",
+                "pages": ["deployment/dockercompose"]
+              },
+              {
+                "group": "Kubernetes",
+                "icon": "kubernetes",
+                "pages": ["deployment/kubernetes", "deployment/helmchart"]
+              },
+              "deployment/virtual-machines"
             ]
           },
           {
@@ -87,8 +121,21 @@
             "icon": "globe",
             "pages": [
               "ecosystem/overview",
-              "ecosystem/apowerb-ui",
-              "ecosystem/th2rag",
+              {
+                "group": "Core",
+                "icon": "apowerb",
+                "pages": ["ecosystem/apowerb"]
+              },
+              {
+                "group": "Interface",
+                "icon": "window",
+                "pages": ["ecosystem/apowerb-ui"]
+              },
+              {
+                "group": "RAG",
+                "icon": "database",
+                "pages": ["ecosystem/th2rag"]
+              },
               "ecosystem/th2etl",
               "ecosystem/th2pulse"
             ]
@@ -97,7 +144,11 @@
             "group": "Contributing",
             "icon": "heart",
             "pages": [
-              "contributing/contributing",
+              {
+                "group": "Guide",
+                "icon": "book",
+                "pages": ["contributing/contributing"]
+              },
               "contributing/development",
               "contributing/releases"
             ]
