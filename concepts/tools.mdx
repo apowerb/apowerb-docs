@@ -13,12 +13,15 @@ GET /api/tools/{tool_name}/params  parameters a config must provide
 POST /api/tools_config             create a configured instance
 ```
 
+The portfolio ships **32 modules**, together exposing over a hundred callable tools.
+
 ## Portfolio
 
 ### Google Workspace
 
-| Module | Functions |
+| Module | Covers |
 | --- | --- |
+| `google_auth` | The OAuth handshake shared by the Google modules |
 | `google_drive` | List, search, read, download files |
 | `google_gmail` | List, search, read, send email |
 | `google_calendar` | List, search, create events |
@@ -27,36 +30,76 @@ POST /api/tools_config             create a configured instance
 
 ### Microsoft 365
 
-| Module | Functions |
+| Module | Covers |
 | --- | --- |
+| `microsoft_auth` | The OAuth handshake shared by the Microsoft modules |
 | `outlook_mail` | List, search, read, send, folders, attachments |
-| `onedrive` | List, search, read, download, upload, folders, shared files |
+| `onedrive_core` | Shared OneDrive plumbing |
+| `onedrive_read` | List, search, read, download, shared files |
+| `onedrive_write` | Upload, create folders, delete |
 | `teams` | Chats, messages, replies, search, group chats, members |
 
 ### Data and databases
 
-| Module | Functions |
+| Module | Covers |
 | --- | --- |
 | `database` | Generic queries and SQL execution |
+| `database_mcp` | Database access over MCP |
 | `text_to_sql` | Natural language to SQL, schema introspection |
 | `db_to_rag` | Index query results into RAG |
 | `data_handler` | Filtering, aggregation, transformation |
+| `business_intelligence` | Datasets, charts and dashboards |
 
-### Knowledge
+### Knowledge and memory
 
-| Module | Functions |
+| Module | Covers |
 | --- | --- |
 | `rag` | Create, list, search and delete knowledge bases |
 | `memory` | Save and search user memory and tool usage patterns |
 
-### Communication and utilities
+### Business systems
 
-| Module | Functions |
+| Module | Covers |
 | --- | --- |
-| `emailing` | Send email over SMTP |
+| `odoo` | Search, create and update CRM/ERP records on an Odoo instance |
 | `marketing` | HubSpot integration, sales leads |
+
+### Content and media
+
+| Module | Covers |
+| --- | --- |
+| `artifacts` | Files an agent produces during a run |
+| `audio` | Audio handling |
+| `image_generation` | Image generation |
+| `visualization` | Chart generation, CSV to chart export |
+
+### Utilities
+
+| Module | Covers |
+| --- | --- |
 | `basic` | Read files, load data, convert images, bearer tokens |
 | `api_call` | Generic API calls |
 | `s3_tools` | Read and search S3 files |
-| `visualization` | Chart generation, CSV to chart export |
 | `web_search_mcp` | Web search over MCP |
+| `integration_status` | Whether a given integration is connected and healthy |
+| `thaink2` | thaink2 platform utilities |
+
+## Skills
+
+Beyond tools, the framework ships **skills** — packaged procedures an agent can follow,
+each one a `SKILL.md` with its references:
+
+`dashboard-builder` · `data-visualization` · `email-campaign` · `error-recovery` ·
+`onedrive-navigation` · `rag-search` · `report-generation` · `text-to-sql`
+
+## MCP servers
+
+Tools can also come from an MCP server declared per workspace. `GET /api/mcp_configs`
+lists the configured servers; the modules suffixed `_mcp` above reach their capabilities
+through that channel.
+
+<Note>
+  A module being present does not mean it is usable: most need a tool config carrying
+  credentials, and the Workspace modules need the matching
+  [integration](/guides/integrations) connected first.
+</Note>

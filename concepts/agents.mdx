@@ -37,6 +37,12 @@ POST /api/agents
 | `memory_enabled` | Persist and search user memory across sessions |
 | `artifacts_enabled` | Allow the agent to write and execute files |
 
+<Warning>
+  `memory_enabled` is **off** unless you turn it on. An agent that seems to lose the
+  thread between sessions is usually an agent whose memory was never enabled — check
+  this field before looking for a bug.
+</Warning>
+
 ## Endpoints
 
 | Method | Endpoint | Description |

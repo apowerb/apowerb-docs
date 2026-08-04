@@ -33,11 +33,25 @@ Agent tools then use those tokens transparently.
 
 ## Supported services
 
-| Provider | Services | Scopes |
+Eleven services can be connected.
+
+| Service | Family | What agents get |
 | --- | --- | --- |
-| Google | Drive, Gmail, Calendar, Sheets, Docs | Service-specific, e.g. `gmail.readonly`, `drive.readonly` |
-| Microsoft | Outlook, Teams, OneDrive, SharePoint | Service-specific, e.g. `Mail.Read`, `Files.ReadWrite` |
-| GitHub | Repositories, Gists | `repo`, `gist`, `read:user` |
+| Google Drive | Storage | Read and search documents and files |
+| Gmail | Email | Read, search and send email |
+| Google Calendar | Calendar | View and create events |
+| Google Sheets | Spreadsheets | Read and write spreadsheet data |
+| Google Docs | Documents | Read and create documents |
+| Outlook | Microsoft 365 | Read and send email through Microsoft Graph |
+| Teams | Microsoft 365 | Read channel and chat messages |
+| OneDrive | Microsoft 365 | Read and write files |
+| SharePoint | Microsoft 365 | Reach sites and documents |
+| GitHub | Version control | Read repositories, open pull requests, manage issues |
+| Odoo | CRM / ERP | Search, create and update records on an Odoo SaaS instance |
+
+Scopes are requested per service — `gmail.readonly`, `drive.readonly`, `Mail.Read`,
+`Files.ReadWrite`, `repo`, and so on — so an agent only ever receives what its service
+needs.
 
 ## Endpoints
 

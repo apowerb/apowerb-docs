@@ -1,6 +1,6 @@
 ---
 title: "Orchestration"
-description: "The four execution patterns and how sub-agents compose."
+description: "The five execution patterns and how sub-agents compose."
 ---
 
 `agent_type` selects how an agent executes.
@@ -11,6 +11,7 @@ description: "The four execution patterns and how sub-agents compose."
 | `parallel` | Sub-agents run concurrently, results are combined |
 | `sequential` | Sub-agents run one after another, each seeing the previous output |
 | `loop` | Iterative execution until a stop condition is met |
+| `router` | Picks which sub-agent to hand the request to, instead of running them all |
 
 ## Sub-agents
 
