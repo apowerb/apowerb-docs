@@ -93,9 +93,29 @@ See [Gmail webhooks](/guides/webhooks-gmail) for the full setup.
 | `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location |
 | `S3_ACCESS`, `S3_SECRET` | Credentials |
 
-## Scheduler 
+## Scheduler
 
-th2etl
+| Variable | Default | Description |
+| --- | --- | --- |
+| `ORCHESTRATOR` | `mage` | Which orchestrator runs the schedules — `mage` or `th2etl` |
+
+With `ORCHESTRATOR=mage` (the default), the server talks to Mage AI:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `BASE_URL` | `http://localhost:6789` | Mage AI URL |
+| `API_KEY` | — | Mage API key |
+| `OAUTH_TOKEN` | — | Mage OAuth token |
+| `PROJECT_NAME` | `default_repo` | Mage project |
+
+With `ORCHESTRATOR=th2etl`, it talks to [th2etl](/ecosystem/th2etl) instead. Both
+clients expose the same surface, so only this setting changes. See
+[Scheduler](/guides/scheduler).
+
+<Warning>
+  Unset means `mage`. A deployment meant to run on th2etl must say so explicitly —
+  silence selects the other backend, and the schedules land where nobody is looking.
+</Warning>
 
 ## Extensions
 

@@ -1,10 +1,24 @@
 ---
 title: "Scheduler"
-description: "Run agents on a cron schedule."
+description: "Run agents on a cron schedule, through the orchestrator of your choice."
 ---
 
-Recurring runs are delegated to [Mage AI](https://www.mage.ai/), configured through the
-`BASE_URL`, `API_KEY`, `OAUTH_TOKEN` and `PROJECT_NAME` variables.
+Recurring runs are delegated to an **orchestrator**. Two are supported, and they are
+interchangeable: the client for each implements the same method surface, so nothing in
+the calling code changes when you switch.
+
+| `ORCHESTRATOR` | Backend | Notes |
+| --- | --- | --- |
+| `mage` | [Mage AI](https://www.mage.ai/) | **the default** — used when the variable is unset |
+| `th2etl` | [th2etl](/ecosystem/th2etl) | the in-house replacement |
+
+<Warning>
+  The setting is read by the listing endpoints too, not only when a schedule is created.
+  A deployment that flips the flag without restarting keeps reading the previous
+  orchestrator, and the runs created on the new one never appear.
+</Warning>
+
+## Scheduling a run
 
 ```json
 POST /api/adk/schedule_run
@@ -21,22 +35,56 @@ POST /api/adk/schedule_run
 }
 ```
 
-## Presets
+### Interval shortcuts
 
 | Preset | Cron |
 | --- | --- |
 | `@hourly` | `0 * * * *` |
-| `@daily` | `0 0 * * *` |
+| `@daily` — also `@midnight` | `0 0 * * *` |
 | `@weekly` | `0 0 * * 0` |
 | `@monthly` | `0 0 1 * *` |
 | Custom | e.g. `*/15 * * * *` |
 
-## Managing triggers
+Mage accepts the `@interval` shortcuts directly. The th2etl client translates them into
+five-field cron expressions before creating the trigger, so the same request body works
+against either backend.
+
+## Managing schedules and runs
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
 | GET | `/api/pipelines` | List pipelines |
 | POST | `/api/pipelines/agents/triggers` | Create a trigger for an agent |
-| GET | `/api/pipelines/{uuid}/schedules` | List schedules |
-| PUT | `/api/pipelines/schedules/{id}` | Update |
-| DELETE | `/api/pipelines/schedules/{id}` | Delete |
+| GET | `/api/pipelines/{pipeline_uuid}/schedules` | List an agent's schedules |
+| PUT | `/api/pipelines/{pipeline_uuid}/schedules/{schedule_id}` | Update a schedule |
+| GET | `/api/pipelines/{pipeline_uuid}/schedules/{schedule_id}/runs` | List a schedule's runs |
+| GET | `/api/pipelines/runs/{run_id}` | Get one run |
+| GET | `/api/pipelines/runs/{run_id}/logs` | Get a run's logs |
+| PUT | `/api/pipelines/runs/{run_id}/cancel` | Cancel a run |
+
+The endpoints keep the `pipelines` naming from the Mage era. They are orchestrator
+agnostic: the same calls reach th2etl when the flag is set.
+
+## What changes between the two
+
+The mapping matters if you inspect the orchestrator directly rather than through this
+API.
+
+| | Mage | th2etl |
+| --- | --- | --- |
+| Unit per agent | a pipeline trigger | one scheduler, **named after the `agent_id`** |
+| Schedule identifier | an integer id | the scheduler **name** |
+| Per-trigger variables | trigger variables | the scheduler's `variables`, injected into the run context on every fire |
+| Ad-hoc trigger | trigger a run | `POST /schedulers/{name}/run` |
+
+<Note>
+  Identifiers are opaque to callers — read one from a listing and pass it back. Do not
+  compare them numerically: Mage ids are integers while th2etl uses names, and a
+  numeric comparison against a th2etl id silently fails to match.
+</Note>
+
+## Configuration
+
+See [Configuration](/configuration) for the variables each orchestrator needs. When
+`ORCHESTRATOR` is unset, the server talks to Mage — so a deployment that means to use
+th2etl must set it explicitly.
