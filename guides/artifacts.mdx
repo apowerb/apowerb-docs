@@ -1,16 +1,66 @@
 ---
 title: "Artifacts"
-description: "Files an agent writes during a session, and running them."
+description: "Every file that enters or leaves an agent session, in one store."
 ---
 
-When `artifacts_enabled` is set on an agent, it can write files during a run — a chart,
-a CSV, a script. They are stored per session.
+When `artifacts_enabled` is set on an agent, files it produces during a run — a chart, a
+CSV, a generated report — are kept per session. The same store also holds what a user
+uploads to that session. One bucket, one API, one tab.
+
+## Layout
+
+Every artifact — generated or uploaded — lives under the same key scheme:
+
+```
+artifacts/{agent}/{session}/{input|output}/{filename}/{version}/{leaf}
+```
+
+`input` and `output` are the only two segments that matter to a reader: an upload and a
+generated file can share the same filename in the same session without colliding, because
+the segment tells them apart. Versions are integers, oldest first; the API always resolves
+the highest one unless told otherwise.
+
+A third kind, `legacy`, covers files written before this layout existed
+(`uploads/{agent}/{filename}`, no session). Nothing writes there any more, but existing
+files are not migrated — they stay reachable through the same endpoints, tagged
+accordingly.
+
+<Note>
+  An upload sent without a session (an agent-wide attachment, not tied to a
+  conversation) is stored under the literal session `_shared` rather than left
+  unscoped.
+</Note>
+
+## Tags
+
+Every entry the API returns carries a `kind`:
+
+| Tag | Meaning |
+| --- | --- |
+| `input` | Uploaded by a user |
+| `output` | Produced by the agent during a run |
+| `legacy` | Written before the layout above existed |
+
+## Endpoints
 
 | Method | Endpoint | Description |
 | --- | --- | --- |
-| GET | `/api/artifacts/{agent}/{user}/{session}` | List session artifacts |
-| GET | `/api/artifacts/{agent}/{user}/{session}/{filename}` | Get contents |
-| POST | `/api/artifacts/{agent}/{user}/{session}/{filename}/execute` | Execute |
+| GET | `/api/artifacts/library` | Every artifact the caller owns, across all agents and sessions, in one call |
+| GET | `/api/artifacts/{agent}/{user}/{session}` | List a session's artifacts |
+| GET | `/api/artifacts/{agent}/{user}/{session}/{filename}` | Get one artifact's content — `?kind=` disambiguates when the same filename exists as both an input and an output |
+| POST | `/api/artifacts/{agent}/{user}/{session}/{filename}/execute` | Execute an artifact |
+
+<Note>
+  `/api/artifacts/library` only answers when the deployment stores artifacts on S3
+  (`STORAGE_MODE=s3`, see [Configuration](/configuration)). On the local-disk backend it
+  returns `{"items": [], "supported": false}` — use the per-session endpoint instead.
+</Note>
+
+## Previews
+
+The file extension decides how an artifact is rendered: syntax highlighting for code,
+a rendered preview for `.html`, and a PDF viewer for `.pdf`. Anything else falls back to
+plain text, or is reported as binary if it does not decode as UTF-8.
 
 <Warning>
   Executing an artifact runs code the model produced. Enable `artifacts_enabled` only
