@@ -133,7 +133,7 @@
             ]
           },
           {
-            "group": "Monitoring",
+            "group": "AgentOps",
             "icon": "magnifying-glass-chart",
             "pages": [
               {
@@ -246,7 +246,7 @@
                 "pages": ["ecosystem/th2rag"]
               },
               {
-                "group": "Monitoring",
+                "group": "AgentOps",
                 "icon": "file-lines",
                 "pages": ["ecosystem/th2pulse"]
               },
