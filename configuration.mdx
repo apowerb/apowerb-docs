@@ -39,11 +39,40 @@ from `.env.example`.
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | `120` | Access token lifetime |
 | `ENCRYPT_PASS` | — | Encryption password |
 
+## API schema
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `PUBLISH_API_SCHEMA` | unset (`false`) | Serve `/docs`, `/redoc` and `/openapi.json` |
+
+FastAPI serves these three routes to anyone by default, with the full inventory of
+paths, parameters and response shapes — no credentials required, since Swagger UI
+cannot send a bearer token on its first load. apowerb removes them instead of guarding
+them, unless this flag is set.
+
+<Warning>
+  Since `0.1.18`, `/docs` and `/openapi.json` answer **404 by default**. Set
+  `PUBLISH_API_SCHEMA=true` to get a browsable schema back — typically for local
+  development only. `WORKING_MODE=production` hides the schema regardless of this
+  flag.
+</Warning>
+
 ## CORS
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `FRONTEND_URLS` | `["http://localhost:3000"]` | Allowed origins, as a JSON array |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated list of allowed origins. Supersedes `FRONTEND_URLS` when set. |
+| `FRONTEND_URLS` | `["http://localhost:3000"]` | Allowed origins, as a JSON array — used when `CORS_ALLOWED_ORIGINS` is not set |
+
+<Warning>
+  **Set `CORS_ALLOWED_ORIGINS` whenever the front end lives on a different domain than
+  the API.** ADK 2.6 added an origin-check middleware that rejects any state-changing
+  request (POST, PUT, PATCH, DELETE) carrying an `Origin` header it was not told about
+  — with a **403 raised before authentication runs**. GET requests are unaffected,
+  which makes the symptom easy to misread: the app looks half-broken (browsing works,
+  every submit fails) rather than looking like a CORS problem. List every origin the
+  browser will call the API from directly, comma-separated.
+</Warning>
 
 ## OAuth — workspace integrations
 
@@ -81,9 +110,27 @@ See [Gmail webhooks](/guides/integrations/google) for the full setup.
 | `RAG_BASE_URL` | — | Base URL of the RAG service ([th2rag](/ecosystem/th2rag)) |
 
 <Warning>
-  `RAG_WEBHOOK_SECRET` ships with a default value. A secret left at its documented
-  default is not a secret — set it explicitly in production.
+  `POST /rag/webhook` sits outside the auth middleware and trusts this HMAC signature
+  instead — it is the only credential guarding the route. Since `0.1.8`, the server
+  **refuses to start** when `WORKING_MODE=production` and `RAG_WEBHOOK_SECRET` is
+  still empty or the shipped placeholder. Generate one before deploying:
+  `openssl rand -hex 32`.
 </Warning>
+
+## Notifications
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `NOTIFICATION_EMAIL` | empty | Shared mailbox used as the `From` for system emails |
+| `NOTIFICATION_EMAIL_PROVIDER` | `outlook` | Provider serving `NOTIFICATION_EMAIL` |
+| `NOTIFICATION_INTEGRATION_OWNER` | empty | Login owning the mailbox integration whose refresh token sends the mail |
+| `SUPER_ADMIN_EMAIL` | empty | Recipient of ETL and system alerts |
+
+<Note>
+  All four default to empty, and the mailer is simply off until they are set — one log
+  line, no error, no email. There is no hardcoded fallback address: an installation
+  that leaves these unset sends nothing, rather than mailing a third party by default.
+</Note>
 
 ## Storage (optional)
 
@@ -93,7 +140,7 @@ See [Gmail webhooks](/guides/integrations/google) for the full setup.
 | `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location for S3-compatible storage |
 | `S3_ACCESS`, `S3_SECRET` | Credentials for S3-compatible storage |
 
-## Scheduler
+## Orchestrator
 
 | Variable | Default | Description |
 | --- | --- | --- |
@@ -110,7 +157,7 @@ With `ORCHESTRATOR=mage` (the default), the server talks to Mage AI:
 
 With `ORCHESTRATOR=th2etl`, it talks to [th2etl](/ecosystem/th2etl) instead. Both
 clients expose the same surface, so only this setting changes. See
-[Scheduler](/guides/scheduler).
+[Orchestrator](/guides/orchestrator).
 
 <Warning>
   Unset means `mage`. A deployment meant to run on th2etl must say so explicitly —

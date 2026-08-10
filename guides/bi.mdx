@@ -93,7 +93,7 @@ GET   /api/v1/dashboards/{dashboard_id}/schedules       list the schedules
 POST  /api/v1/charts/{chart_id}/schedule-refresh        same, for one chart
 ```
 
-Refreshes run through the [scheduler](/guides/scheduler), so they obey the same
+Refreshes run through the [orchestrator](/guides/orchestrator), so they obey the same
 `ORCHESTRATOR` setting as every other recurring run.
 
 `GET /api/v1/bi/stats` returns the module's counters — what the screen above displays.

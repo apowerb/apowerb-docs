@@ -133,18 +133,13 @@
             ]
           },
           {
-            "group": "Monitoring & Evaluation",
+            "group": "AgentOps",
             "icon": "magnifying-glass-chart",
             "pages": [
               {
                 "group": "Logs",
                 "icon": "file-lines",
                 "pages": ["monitoring/logs"]
-              },
-              {
-                "group": "Evaluations",
-                "icon": "check-double",
-                "pages": ["monitoring/evaluations"]
               },
               {
                 "group": "Guardrails",
