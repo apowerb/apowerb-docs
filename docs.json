@@ -246,7 +246,7 @@
                 "pages": ["ecosystem/th2rag"]
               },
               {
-                "group": "AgentOps",
+                "group": "Monitoring",
                 "icon": "file-lines",
                 "pages": ["ecosystem/th2pulse"]
               },
