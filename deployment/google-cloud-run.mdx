@@ -1,0 +1,13 @@
+---
+title: "Google Cloud Run"
+description: "Deploy apowerb to Google Cloud Run."
+---
+
+To deploy apowerb to Google Cloud Run:
+
+1.  Build your Docker container and push it to Google Container Registry or Artifact Registry.
+2.  Deploy the image to Cloud Run:
+    ```bash
+    gcloud run deploy apowerb --image <your-image-url> --platform managed
+    ```
+3.  Configure environment variables in the Cloud Run settings.

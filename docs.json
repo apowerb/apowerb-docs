@@ -217,7 +217,32 @@
               {
                 "group": "Virtual Machines",
                 "icon": "linux",
-                "pages": ["deployment/virtual-machines"]
+                "pages": ["deployment/virtual-machine"]
+              },
+              {
+                "group": "DigitalOcean",
+                "icon": "digital-ocean",
+                "pages": ["deployment/digitalocean"]
+              },
+              {
+                "group": "Azure App Service",
+                "icon": "microsoft",
+                "pages": ["deployment/azure-app-service"]
+              },
+              {
+                "group": "Google Cloud Run",
+                "icon": "google",
+                "pages": ["deployment/google-cloud-run"]
+              },
+              {
+                "group": "Podman",
+                "icon": "docker",
+                "pages": ["deployment/podman"]
+              },
+              {
+                "group": "Portainer",
+                "icon": "docker",
+                "pages": ["deployment/portainer"]
               }
             ]
           },
