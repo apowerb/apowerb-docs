@@ -243,6 +243,11 @@
                 "group": "Portainer",
                 "icon": "docker",
                 "pages": ["deployment/portainer"]
+              },
+              {
+                "group": "Hostman",
+                "icon": "globe",
+                "pages": ["deployment/hostman"]
               }
             ]
           },
