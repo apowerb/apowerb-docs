@@ -137,6 +137,11 @@
             "icon": "magnifying-glass-chart",
             "pages": [
               {
+                "group": "Supervision",
+                "icon": "user-shield",
+                "pages": ["monitoring/supervision"]
+              },
+              {
                 "group": "Logs",
                 "icon": "file-lines",
                 "pages": ["monitoring/logs"]

@@ -1,0 +1,49 @@
+---
+title: "Supervision"
+description: "Reading sessions across accounts, and who is entitled to."
+---
+
+`GET /api/supervision/sessions` lists sessions with their owner, so an operator can audit
+what ran on the platform rather than guessing from logs. The same entitlement governs the
+session trace route.
+
+Each row carries `session_id`, `app_name`, `agent_name`, `user_id`, `create_time`,
+`update_time`, a `preview` of the opening question, and counts: `steps`, `tool_calls`,
+`has_error`. The preview is what makes the list scannable — without it, hundreds of runs
+of the same agent read identically. Paginate with `limit` (200 by default) and `offset`;
+`total` is the unpaginated count.
+
+## Who sees what
+
+In this edition, **each person sees their own sessions**. That is not a limitation to work
+around — it is the only default the core can honestly hold.
+
+Reading someone else's sessions is a privilege, and the core cannot decide who holds it:
+the notion of a platform owner lives in a table owned by a commercial brick, and the core
+must never name one. So it asks, through a registry hook. **With no brick registered, the
+answer is no.**
+
+<Warning>
+  Being an administrator is not, on its own, entitlement to read another account's
+  sessions. Earlier builds gated supervision on `is_admin`, which meant every
+  administrator saw every agent on the platform — including colleagues who are
+  administrators for operational reasons rather than platform owners. The boundary is the
+  platform owner, and only a brick can hold it.
+</Warning>
+
+## Grouping sessions
+
+Group and filter by `app_name`, never by `agent_name`. `app_name` is derived from the
+agent's id (`agent<id>`), so it identifies one agent and one owner. `agent_name` is a
+label and is **not** unique across the platform — the same name can belong to several
+accounts — so grouping on it merges unrelated people's sessions into one row.
+
+## Verifying the scope
+
+A supervision call that returns only your own sessions proves nothing on its own: it is
+the correct answer both when no brick is registered and when one is registered and refuses
+you. To tell the two apart, check whether the brick is **loaded**, not merely installed —
+they are separate steps, and an extension present on disk but absent from the loaded set
+answers exactly like an extension that was never installed.
+
+See [Editions & Extensions](/concepts/editions).

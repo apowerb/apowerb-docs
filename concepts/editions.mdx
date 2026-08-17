@@ -9,8 +9,25 @@ crippled build waiting for a licence key.
 ## Absent, not disabled
 
 Commercial capabilities — identity-provider login, multi-factor authentication, token
-accounting and quotas, billing, B2B prospecting — are **not present** in the
-open-source build. There is no feature flag to flip and no dead code in the image.
+accounting and quotas, billing, B2B prospecting, agent evaluation, the administration
+panel — are **not present** in the open-source build. There is no feature flag to flip and
+no dead code in the image.
+
+Two of them are recent, and worth naming because the core keeps a *hook* where the brick
+used to be the whole answer:
+
+- **Agent evaluation** left the core in `0.2.0`. The eval routes and the judge logic
+  belong to the evaluation brick; the core no longer serves the ADK `eval_sets` /
+  `eval_results` routes.
+- **Supervision across accounts** stays in the core, but *who may cross accounts* is
+  answered by a brick. With none registered, each person sees only their own sessions —
+  see [Supervision](/monitoring/supervision).
+
+<Warning>
+  The evaluation brick and an older core do not coexist: the brick redefines model
+  metadata the core also declares. Pin the brick against the core release it was built
+  for rather than mixing versions.
+</Warning>
 
 That distinction is observable on a running stack:
 
@@ -19,6 +36,7 @@ GET /api/config           → no "billing_enabled" key
 GET /api/usage/quota      → 404
 GET /api/billing/packages → 404
 GET /api/auth/mfa/status  → 404
+GET /apps/demo/eval_sets  → 404
 ```
 
 <Note>

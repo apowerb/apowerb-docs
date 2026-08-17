@@ -1,0 +1,42 @@
+---
+title: "apowerb"
+description: "The open-source core: what the package is, and what it is not."
+---
+
+[`apowerb`](https://github.com/apowerb/apowerb) is the core of the stack: a FastAPI server
+that stores agents, builds them on Google ADK, runs them, and exposes the whole thing over
+REST. It is published on [PyPI](https://pypi.org/project/apowerb/) under the MIT licence
+and installs on Python 3.10+.
+
+```bash
+pip install apowerb
+apowerb serve
+```
+
+It needs a PostgreSQL database and an `ENCRYPT_KEY`; everything else has a default. See
+[Installation](/installation) and [Configuration](/configuration).
+
+## What it contains
+
+Agent CRUD and generation, ADK execution with streaming, sessions and traces, the
+[tool](/guides/tools) portfolio and [skills](/guides/skills), [RAG](/guides/rag) and
+[Text-to-SQL](/guides/text-to-sql) clients, [webhooks](/guides/webhooks),
+[integrations](/guides/integrations/overview), BI charts and dashboards, artifacts, the
+[Hub](/guides/hub), scheduled runs through an [orchestrator](/guides/orchestrator), and
+[supervision](/monitoring/supervision).
+
+## What it does not contain
+
+Billing, usage metering and quotas, B2B prospecting, identity-provider sign-in,
+multi-factor authentication, agent evaluation and the administration panel are commercial
+bricks. They are **absent**, not disabled — their routes answer `404`. See
+[Editions and extensions](/concepts/editions).
+
+The core keeps hooks where a brick can answer, and holds a safe default when none does:
+without a brick, supervision shows each person only their own sessions.
+
+## Versioning
+
+The published version is the git tag of the release, not the number in `pyproject.toml` —
+the release workflow injects it at build time, so the file itself lags. Read the version
+from [PyPI](https://pypi.org/project/apowerb/) or from the tags.

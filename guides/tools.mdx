@@ -1,0 +1,65 @@
+---
+title: "Tools"
+description: "What an agent can do, and how a tool is configured per agent."
+---
+
+A tool is a Python function an agent may call. The core ships a portfolio of **31 tool
+modules**; an agent is given the subset it needs, and each tool that talks to an external
+service reads its settings from a **tool configuration** attached to that agent.
+
+## The portfolio
+
+| Family | Modules |
+| --- | --- |
+| Google Workspace | `google_auth`, `google_drive`, `google_gmail`, `google_calendar`, `google_docs`, `google_sheets` |
+| Microsoft 365 | `microsoft_auth`, `outlook_mail`, `teams`, `onedrive_core`, `onedrive_read`, `onedrive_write` |
+| Data and databases | `database`, `database_mcp`, `data_handler`, `text_to_sql`, `s3_tools`, `db_to_rag` |
+| BI and visuals | `business_intelligence`, `visualization`, `image_generation` |
+| Knowledge | `rag`, `memory` |
+| External services | `api_call`, `web_search_mcp`, `odoo`, `marketing`, `thaink2` |
+| Media | `audio` |
+| Utilities | `basic`, `integration_status` |
+
+Ask a running instance rather than trusting this table to stay exhaustive:
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/tools` | Every tool available to the caller |
+| GET | `/api/tools/docs` | Their documentation, as the agent sees it |
+| GET | `/api/tools/{tool_name}/params` | The parameters one tool expects |
+
+## Tool configurations
+
+A tool module is generic; a tool *configuration* binds it to something concrete — this
+database, that Drive folder, this API key. Configurations belong to an agent, so two
+agents can use `database` against two different servers.
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/tools_config` | List configurations |
+| POST | `/api/tools_config` | Create one |
+| GET | `/api/tools_config/{tool_config_id}` | Read one |
+| PUT | `/api/tools_config/{tool_config_id}` | Update one |
+| DELETE | `/api/tools_config/{tool_config_id}` | Delete one |
+
+Credentials inside a configuration are encrypted at rest with `ENCRYPT_KEY`.
+
+<Note>
+  Tools that act on Google or Microsoft data do **not** hold their own credentials: they
+  use the OAuth integration the user connected, so revoking the integration revokes the
+  agent's access with it. See [Integrations](/guides/integrations/overview).
+</Note>
+
+## Tools backed by MCP
+
+Two modules are not plain functions but MCP toolsets: `database_mcp` and
+`web_search_mcp`. They are discovered by naming convention — a factory called
+`mcp_tool_set_*` is invoked at build time so the toolset is created fresh, with the
+current key, rather than captured once at import. See [MCP](/guides/mcp).
+
+## Adding a tool
+
+A module in the portfolio exposes plain functions with type hints and a docstring — that
+docstring is what the model reads to decide whether to call it, so it is interface, not
+commentary. Reload the agent (`POST /api/agents/{agent_id}/reload`) to pick up a change
+without restarting the server.

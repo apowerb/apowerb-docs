@@ -23,6 +23,26 @@ Tokens are signed with `ENCRYPT_KEY` and expire after `ACCESS_TOKEN_EXPIRE_MINUT
 (120 by default). Refresh with `POST /api/auth/refresh-token`; `POST /api/auth/logout`
 clears the refresh cookie.
 
+## Revoking a session
+
+A token is not valid until it expires, whatever happens in between. Every user row
+carries a `sessions_valid_from` cut-off, and any access token minted before it is refused
+with `session_revoked` — a distinctive code, not a plain `401`, so a forced sign-out is
+never mistaken for a bad password.
+
+The refresh cookie is checked against the same cut-off. Revoking access while leaving a
+thirty-day cookie able to mint fresh tokens would turn "sign in again" into "wait a few
+minutes".
+
+<Note>
+  The `agent_refresh` tokens the Orchestrator stores for scheduled runs are deliberately
+  exempt: they never reach the user-facing guard. Forcing a human to sign in again must
+  not stop their agents from running at 4 a.m.
+</Note>
+
+Raising the cut-off is an administrative action, so the endpoint that does it belongs to
+the admin brick, not to this core. What the core holds is the enforcement.
+
 ## Account lifecycle
 
 | Method | Endpoint | Description |
@@ -38,7 +58,10 @@ Two things belong to commercial editions and are **absent** from this build:
 
 - **Signing in with an identity provider** — GitHub, Google, Microsoft, LinkedIn. The
   open-source core authenticates with email and password only.
-- **Multi-factor authentication.** `/api/auth/mfa/*` does not exist; it answers `404`.
+- **Multi-factor authentication.** `/api/auth/mfa/*` does not exist; it answers `404`. The
+  core can still *enforce* a second factor once a brick provides one: a request from
+  someone who owes an enrolment is refused with `mfa_enrolment_required`, except on the
+  routes that let them enrol. Without the brick, nobody owes one and nothing is refused.
 
 See [Editions](/concepts/editions). Do not read those `404`s as a missing object —
 they mean the capability is not in this edition.

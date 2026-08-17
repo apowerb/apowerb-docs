@@ -14,6 +14,18 @@ description: "Status codes and what they mean here."
 | `500` | Internal server error |
 | `503` | Service temporarily unavailable |
 
+## Distinctive authentication codes
+
+A `401` on a protected route carries a code when the reason is not simply a bad or
+expired token:
+
+| Code | Meaning |
+| --- | --- |
+| `session_revoked` | The token predates the account's `sessions_valid_from` cut-off — someone forced a re-login. Sign in again; refreshing will not help, the cookie is checked against the same cut-off. |
+| `mfa_enrolment_required` | A second factor is demanded of this account and not yet enrolled. Only the enrolment routes answer until it is done. Requires the auth brick — see [Editions](/concepts/editions). |
+
+See [Authentication](/api-reference/authentication) for how both are enforced.
+
 <Note>
   `404` is overloaded: it means either "this object does not exist" or "this endpoint
   does not exist in this edition". Check [Editions](/concepts/editions) before
