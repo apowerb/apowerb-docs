@@ -19,9 +19,12 @@ from `.env.example`.
 | `ENCRYPT_KEY` | Fernet key used for encryption at rest **and** JWT signing. Must be a urlsafe-base64 32-byte key — `Fernet.generate_key()` |
 
 <Note>
-  `.env.example` also carries `TEST_TOKEN`. Nothing in the server reads it — it is
-  leftover from an earlier version. Setting it changes nothing; leaving it out
-  breaks nothing.
+  `.env.example` may still carry `TEST_TOKEN`. It is **not required**: the only code
+  that reads it is a middleware mounted nowhere. Setting it changes nothing, leaving it
+  out breaks nothing.
+
+  Earlier versions did refuse to start without it, which meant inventing a "test token"
+  to run in production. That requirement is gone.
 </Note>
 
 <Warning>
