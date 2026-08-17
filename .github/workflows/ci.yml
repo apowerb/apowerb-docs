@@ -22,5 +22,13 @@ jobs:
       - name: Validate the OpenAPI schema is parseable
         run: python3 -c "import json; s=json.load(open('api-reference/openapi.json')); print(len(s['paths']), 'paths')"
 
+      # `broken-links` does not see a navigation entry pointing at a file that
+      # does not exist -- there is no link to follow. That is how four dead
+      # entries (guides/tools, guides/mcp, guides/skills, ecosystem/apowerb)
+      # survived in docs.json and answered 404 on the live site. `validate`
+      # runs the strict build and fails on them.
+      - name: Validate the build
+        run: mint validate
+
       - name: Check for broken links
         run: mint broken-links
