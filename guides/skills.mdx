@@ -1,0 +1,57 @@
+---
+title: "Skills"
+description: "Reusable procedures an agent can follow, shipped or written by you."
+---
+
+A skill is a written procedure an agent can load: how to build a dashboard, how to recover
+from a failed tool call, how to phrase a report. Where a [tool](/guides/tools) gives an
+agent a new *capability*, a skill gives it a *method* for using the capabilities it already
+has.
+
+Skills are loaded through Google ADK: a skill is a directory containing a `SKILL.md`, and
+the core hands the resulting toolset to the agent.
+
+## The portfolio
+
+Eight skills ship with the core:
+
+| Skill | What it covers |
+| --- | --- |
+| `dashboard-builder` | Building a BI dashboard: charts, KPIs and tables on one page |
+| `data-visualization` | Choosing and producing the chart that answers the question |
+| `text-to-sql` | Turning a data question into SQL, including exploring tables and joins |
+| `rag-search` | Searching knowledge bases and uploaded documents, and citing what it found |
+| `report-generation` | Producing a structured report, summary or executive briefing |
+| `email-campaign` | Campaigns end to end: leads from HubSpot, segmentation, drafting, then sending — but **only after the user approves explicitly** |
+| `onedrive-navigation` | Browsing, searching and managing files across OneDrive and SharePoint |
+| `error-recovery` | Reacting to a failed call — retry strategies instead of stopping |
+
+## Your own skills
+
+Custom skills live in the database and are managed through the API:
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/skills` | List your skills |
+| POST | `/api/skills` | Create one |
+| GET | `/api/skills/{skill_id}` | Read one |
+| PUT | `/api/skills/{skill_id}` | Update one |
+| DELETE | `/api/skills/{skill_id}` | Delete one |
+| GET | `/api/skills/portfolio` | List the built-in skills |
+
+## Moving skills between instances
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/skills/{skill_id}/export` | Export one of your skills |
+| GET | `/api/skills/portfolio/{skill_name}/export` | Export a built-in skill |
+| POST | `/api/skills/import` | Import a skill |
+
+Exporting a built-in skill is the practical way to write your own: start from one that
+already works, adjust it, import it back as yours.
+
+<Note>
+  A portfolio skill that fails to load is logged and skipped, not fatal — the agent starts
+  without it. If a skill seems to have no effect, check the startup logs for
+  `[SKILLS] Failed to load portfolio skill` before looking at the agent's instruction.
+</Note>

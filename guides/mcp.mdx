@@ -1,0 +1,61 @@
+---
+title: "MCP"
+description: "Reaching Model Context Protocol servers, and registering your own."
+---
+
+Beyond its own Python tools, an agent can call tools served by a **Model Context Protocol**
+server. The core supports two routes, and they solve different problems.
+
+## Toolsets built into the portfolio
+
+Two portfolio modules are MCP clients rather than plain functions:
+
+| Module | Server | Configuration |
+| --- | --- | --- |
+| `web_search_mcp` | Tavily, over streamable HTTP | `TAVILY_API_KEY` |
+| `database_mcp` | MCP Toolbox for Databases | `MCP_TOOLBOX_URL` (default `http://localhost:5000`), `MCP_TOOLBOX_TOOLSET` |
+
+Leave `MCP_TOOLBOX_TOOLSET` empty to load every tool the Toolbox exposes, or name one
+toolset to load just that.
+
+They are discovered by their name: `tool_manager` treats any `mcp_tool_set_*` attribute as
+a **factory** and calls it when the agent is built.
+
+<Note>
+  The factory matters. A toolset instantiated once at import would capture the API key of
+  that moment and keep using it after a rotation. Calling the factory per build means the
+  connection is created with the key that is current.
+</Note>
+
+### MCP Toolbox for Databases
+
+The Toolbox is a separate process, with its own binary and a `tools.yaml` describing the
+databases it may reach. The core only needs to know where it listens.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `TOOLBOX_DIR` | — | Directory holding `tools.yaml` and the binary. Empty falls back to `RUNTIME_ROOT`, i.e. the working directory |
+| `TOOLBOX_PORT` | — | Port the Toolbox listens on |
+| `MCP_TOOLBOX_URL` | `http://localhost:5000` | URL the agent connects to |
+
+## Servers registered at runtime
+
+Servers do not have to be baked into the portfolio. They can be stored and edited through
+the API, which is what the interface uses:
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/mcp_configs` | List registered servers |
+| POST | `/api/mcp_configs` | Register one |
+| PUT | `/api/mcp_configs/{mcp_config_id}` | Update one |
+| POST | `/api/mcp_configs/reload` | Re-read the configurations and rebuild the toolsets |
+
+`reload` exists because a new server is useless until the toolsets are rebuilt — it saves
+restarting the server to pick up a configuration change.
+
+<Warning>
+  An MCP server is code you do not control, invoked by a model. Its tool descriptions
+  reach the agent's prompt, so a server you did not vet can influence what the agent
+  decides to do. Register servers you trust, and prefer scoping a Toolbox to named
+  toolsets over exposing every database it can see.
+</Warning>

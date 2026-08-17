@@ -98,6 +98,7 @@ user signs in.
 | --- | --- |
 | `GMAIL_PUBSUB_PROJECT_ID` | Google Cloud project hosting the topic |
 | `GMAIL_PUBSUB_TOPIC` | Topic name only, not the full path |
+| `GOOGLE_WEBHOOK_AUDIENCE` | Expected `aud` claim of the JWT Google signs its push with. The handler verifies that token before acting on the notification |
 
 See [Gmail webhooks](/guides/integrations/google) for the full setup.
 
@@ -138,7 +139,7 @@ See [Gmail webhooks](/guides/integrations/google) for the full setup.
 | --- | --- |
 | `STORAGE_MODE` | `local`, `s3` (or any S3-compatible storage), or `azure` (coming soon) |
 | `S3_REGION`, `S3_ENDPOINT`, `S3_BUCKET_NAME` | Bucket location for S3-compatible storage |
-| `S3_ACCESS`, `S3_SECRET` | Credentials for S3-compatible storage |
+| `S3_ACCESS_KEY`, `S3_ACCESS_KEY_SECRET` | Credentials for S3-compatible storage |
 
 ## Orchestrator
 
@@ -155,14 +156,107 @@ With `ORCHESTRATOR=mage` (the default), the server talks to Mage AI:
 | `OAUTH_TOKEN` | — | Mage OAuth token |
 | `PROJECT_NAME` | `default_repo` | Mage project |
 
-With `ORCHESTRATOR=th2etl`, it talks to [th2etl](/ecosystem/th2etl) instead. Both
-clients expose the same surface, so only this setting changes. See
+With `ORCHESTRATOR=th2etl`, it talks to [th2etl](/ecosystem/th2etl) instead:
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `TH2ETL_BASE_URL` | `http://localhost:8009` | th2etl instance |
+| `TH2ETL_API_KEY` | — | Must equal that instance's own `API_KEY`: its business routes require `Authorization: Bearer <key>` |
+
+Both clients expose the same surface, so only these settings change. See
 [Orchestrator](/guides/orchestrator).
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `SCHEDULER_ENABLED` | `true` | Set to `false` to drop the scheduler integration entirely |
+| `MAGE_PIPELINE_UUID` | `agents` | Pipeline the Mage backend triggers |
 
 <Warning>
   Unset means `mage`. A deployment meant to run on th2etl must say so explicitly —
   silence selects the other backend, and the schedules land where nobody is looking.
 </Warning>
+
+## Default LLM provider
+
+Agents with no model of their own fall back to this provider.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `DEFAULT_LLM_MODEL` | — | LiteLLM model id used when an agent names none |
+| `DEFAULT_LLM_API_KEY` | — | Key for that model |
+| `DEFAULT_LLM_API_BASE` | — | Base URL, for self-hosted or proxied providers |
+| `DEFAULT_LLM_MONTHLY_TOKEN_QUOTA` | `1000000` | Monthly token allowance on the default provider |
+| `DEFAULT_LLM_PLAN_QUOTAS` | `{}` | Per-plan overrides, as JSON |
+| `CREDIT_TOKEN_VALUE` | `100000` | Tokens one credit is worth |
+
+## Sign-up and sign-in
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `AUTH_REGISTER_ENABLED` | `true` | Allow self-service account creation |
+| `AUTH_BASIC_ENABLED` | `true` | Allow email/password sign-in |
+| `AUTH_EMAIL_VERIFICATION_ENABLED` | `false` | Require a confirmed address before use |
+| `EMAIL_VERIFY_TOKEN_EXPIRE_HOURS` | `24` | Lifetime of the confirmation token |
+| `APP_PUBLIC_URL` | `http://localhost:3000` | Public URL of the **front** app, used to build verify and reset links |
+
+## Database, beyond the required settings
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `DB_TYPE` | `postgresql` | Database backend |
+| `DB_SSLMODE` | `require` | libpq SSL mode |
+| `DB_AGENT_STORE_TABLE_NAME` | `th2agents_store` | Table holding agent definitions |
+| `ECHO_SQL` | `false` | Log every SQL statement — noisy, for debugging only |
+
+## Runtime directories
+
+Where the server writes on disk. S3 keys keep their own namespace and are unaffected.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `RUNTIME_ROOT` | — | Root for the directories below; empty means the working directory |
+| `AGENTS_POOL_DIR` | `agents_pool` | Generated agent modules |
+| `ARTIFACTS_STORE_DIR` | `artifacts_store` | Artifacts, in local storage mode |
+| `UPLOADS_DIR` | `uploads` | Uploaded files, in local storage mode |
+| `TOOLBOX_DIR` | — | MCP toolbox location; empty means `RUNTIME_ROOT` |
+| `ROOT_PATH` | `http://localhost:8000` | Mount prefix when served behind a path-rewriting proxy |
+
+## Organisations
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `ORG_DOMAIN_SLUGS` | `{}` | JSON map of email domain to organisation slug, e.g. `{"example.com": "example"}`. Membership is computed from it |
+| `ETL_ALERT_RECIPIENTS` | — | Recipients of ETL and system alerts |
+
+## Development-only switches
+
+<Warning>
+  Both must stay `false` in production. The first is refused at boot when
+  `WORKING_MODE` is production; the second must never run unattended — use the
+  migration CLI explicitly instead.
+</Warning>
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `WEBHOOK_DEV_SKIP_SIG` | `false` | Skip signature verification on the Gmail webhook, so local testing needs no Google Cloud project |
+| `ENCRYPT_LEGACY_ON_BOOT` | `false` | Run the legacy integration-token encryption migration at startup |
+
+## Declared here, used by bricks
+
+The core declares these so a brick can read them. In a core-only install they are inert:
+setting them changes nothing, and the matching routes still answer `404`.
+
+| Variable | Brick |
+| --- | --- |
+| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | billing |
+| `EVALUATION_ENABLED`, `EVALUATION_JUDGE_MODEL`, `EVALUATION_JUDGE_API_KEY`, `EVALUATION_PASS_THRESHOLD_*`, `EVALUATION_MIN_RERUN_INTERVAL_SECONDS`, `EVALUATION_TOOL_USAGE_TOKENS_PER_CALL_SOFT_CAP` | evaluation |
+| `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_TENANT_ID`, `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | auth (identity-provider sign-in) |
+
+<Note>
+  These are the **sign-in** credentials, not the workspace ones. Connecting Google Drive or
+  Outlook for an agent uses the `*_INTEGRATION_*` variables above, which are part of this
+  edition.
+</Note>
 
 ## Extensions
 
