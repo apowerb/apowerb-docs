@@ -196,67 +196,6 @@
             ]
           },
           {
-            "group": "Deployment",
-            "icon": "server",
-            "pages": [
-              {
-                "group": "Docker Compose",
-                "icon": "docker",
-                "pages": ["deployment/dockercompose"]
-              },
-              {
-                "group": "Kubernetes",
-                "icon": "cog",
-                "pages": ["deployment/kubernetes"]
-              },
-              {
-                "group": "Helm",
-                "icon": "cubes",
-                "pages": ["deployment/helmchart"]
-              },
-              {
-                "group": "Secrets",
-                "icon": "lock",
-                "pages": ["deployment/secrets"]
-              },
-              {
-                "group": "Virtual Machines",
-                "icon": "linux",
-                "pages": ["deployment/virtual-machine"]
-              },
-              {
-                "group": "DigitalOcean",
-                "icon": "digital-ocean",
-                "pages": ["deployment/digitalocean"]
-              },
-              {
-                "group": "Azure App Service",
-                "icon": "microsoft",
-                "pages": ["deployment/azure-app-service"]
-              },
-              {
-                "group": "Google Cloud Run",
-                "icon": "google",
-                "pages": ["deployment/google-cloud-run"]
-              },
-              {
-                "group": "Podman",
-                "icon": "docker",
-                "pages": ["deployment/podman"]
-              },
-              {
-                "group": "Portainer",
-                "icon": "docker",
-                "pages": ["deployment/portainer"]
-              },
-              {
-                "group": "Hostman",
-                "icon": "globe",
-                "pages": ["deployment/hostman"]
-              }
-            ]
-          },
-          {
             "group": "Ecosystem",
             "icon": "globe",
             "pages": [
@@ -303,6 +242,29 @@
               },
               "contributing/development",
               "contributing/releases"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "icon": "server",
+        "groups": [
+          {
+            "group": "Platforms",
+            "icon": "server",
+            "pages": [
+              "deployment/dockercompose",
+              "deployment/kubernetes",
+              "deployment/helmchart",
+              "deployment/secrets",
+              "deployment/virtual-machine",
+              "deployment/digitalocean",
+              "deployment/azure-app-service",
+              "deployment/google-cloud-run",
+              "deployment/podman",
+              "deployment/portainer",
+              "deployment/hostman"
             ]
           }
         ]

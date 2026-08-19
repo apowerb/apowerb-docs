@@ -1,28 +1,49 @@
 ---
-title: "Outlook webhooks"
-description: "Wire Outlook push notifications through Microsoft Graph."
+title: "Microsoft Integration"
+description: "Connecting Outlook, OneDrive, and other Microsoft services."
 ---
 
 ## Prerequisites
 
-- A registered Microsoft Azure AD application
-- Microsoft Graph permission `Mail.Read`
+- A Microsoft Azure AD application
+- Microsoft Graph permissions
 - A publicly reachable HTTPS URL
+
+## Register an Application
+
+To establish the connection, you first need to register an application in the [Microsoft Entra admin center](https://entra.microsoft.com/):
+
+<Steps>
+  <Step title="Create App Registration">
+    Go to **App registrations** > **New registration**.
+    - Name: `apowerb-integration`
+    - Supported account types: **Accounts in any organizational directory (Any Microsoft Entra ID tenant - Multitenant) and personal Microsoft accounts**
+    - Redirect URI: `https://your-domain.com/api/v1/auth/callback` (or your local setup)
+  </Step>
+  <Step title="Generate Client Secret">
+    Navigate to **Certificates & secrets** > **Client secrets** > **New client secret**. Save the value securely.
+  </Step>
+  <Step title="API Permissions">
+    Go to **API permissions** > **Add a permission** > **Microsoft Graph**.
+    - For Outlook: Select `Mail.Read`, `Mail.Send`, `Calendars.Read`
+    - For OneDrive: Select `Files.Read.All`, `Files.ReadWrite`
+    - Click **Grant admin consent** if required.
+  </Step>
+</Steps>
 
 ## Setup
 
 <Steps>
   <Step title="Configure the environment">
-    Set the `MICROSOFT_INTEGRATION_*` variables — see [Configuration](/configuration).
+    Set the following `MICROSOFT_INTEGRATION_*` variables in your environment:
+    - `MICROSOFT_CLIENT_ID`: Your Application (client) ID
+    - `MICROSOFT_CLIENT_SECRET`: Your generated client secret
+    - `MICROSOFT_TENANT_ID`: Your Directory (tenant) ID (use `common` for multitenant)
+    See [Configuration](/configuration).
   </Step>
-  <Step title="Connect Outlook">
-    From the interface, connect the Outlook integration.
-  </Step>
-  <Step title="Subscribe">
-    Create a webhook subscription with `"provider": "microsoft_outlook"`.
+  <Step title="Connect services">
+    From the interface, navigate to **Integrations** and select **Microsoft**. Connect your account using the configured app details.
   </Step>
 </Steps>
 
-The handler uses Microsoft Graph change notifications and validates `clientState` on
-every delivery. Subscriptions expire after three days and are renewed automatically —
-see [Webhooks](/guides/webhooks).
+The handler uses Microsoft Graph change notifications. Subscriptions expire after three days and are renewed automatically — see [Webhooks](/guides/webhooks).
