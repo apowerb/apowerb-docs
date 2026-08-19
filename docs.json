@@ -1,8 +1,8 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "sequoia",
-  "name": "apowerb",
-  "description": "Open-source agentic framework \u2014 orchestration, tools, RAG, Text-to-SQL and webhooks on top of FastAPI and Google ADK.",
+  "name": "apowerb by thaink2",
+  "description": "Open-source agentic framework designed and developed by thaink2 (https://thaink2.com/) \u2014 orchestration, tools, RAG, Text-to-SQL and webhooks on top of FastAPI and Google ADK.",
   "colors": {
     "primary": "#0A1E72",
     "light": "#5B7CFA",
