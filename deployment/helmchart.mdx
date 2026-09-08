@@ -38,7 +38,17 @@ helm upgrade --install apowerb ./helm/apowerb \
   version control and pass it with `--values`.
 </Warning>
 
-From a published release:
+<Warning>
+  **Aucune version de ce chart n'est publiée pour l'instant.** Le workflow
+  `release-helm.yml` d'`apowerb-hosting` échoue à chaque push sur `main` —
+  `chart-releaser` sort en `exit status 128` faute de branche `gh-pages` — donc
+  il n'existe ni tag, ni release, ni chart sur les deux registres. La commande
+  ci-dessous est celle qui marchera une fois le chart publié, ce qui viendra
+  après un premier `helm install` réussi sur un vrai cluster. En attendant,
+  installez depuis les sources.
+</Warning>
+
+Une fois le chart publié :
 
 ```bash
 helm install apowerb oci://registry-1.docker.io/apowerb/apowerb --version 0.2.0
