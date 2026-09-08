@@ -76,13 +76,30 @@ def prose(line: str) -> str:
     return s
 
 
+def body_lines(text: str) -> list[str]:
+    """Le corps de la page, frontmatter exclu.
+
+    `title:` et `description:` sont du texte, et ils ressemblent a de la
+    prose -- mais ils vont dans les metadonnees, jamais dans le corps rendu.
+    Un temoin pris la reste introuvable sur une page pourtant a jour : c'est
+    le faux rouge qu'a produit `deployment/kubernetes` au retest.
+    """
+    lines = text.splitlines()
+    if lines and lines[0].strip() == "---":
+        for i, line in enumerate(lines[1:], 1):
+            if line.strip() == "---":
+                return lines[i + 1:]
+        return []  # frontmatter jamais referme : rien de fiable a lire
+    return lines
+
+
 def witness(path: str, before: str, after: str) -> str | None:
-    """La plus longue phrase que ce commit ajoute a cette page."""
+    """La plus longue phrase que ce commit ajoute au CORPS de cette page."""
     try:
-        old_lines = set(git("show", f"{before}:{path}").splitlines())
+        old_lines = set(body_lines(git("show", f"{before}:{path}")))
     except subprocess.CalledProcessError:
         old_lines = set()  # page nouvelle
-    new = git("show", f"{after}:{path}").splitlines()
+    new = body_lines(git("show", f"{after}:{path}"))
 
     best = ""
     for line in new:
@@ -136,8 +153,9 @@ def main() -> int:
         targets.append((path, w))
 
     if not targets:
-        print("Aucun témoin utilisable : ce push ne change que du balisage ou "
-              "du code. Rien à conclure, et rien à signaler.")
+        print("Aucun témoin utilisable : ce push ne touche que du balisage, du "
+              "code ou du frontmatter — rien qui s'affiche comme une phrase "
+              "dans le corps de la page. Rien à conclure, et rien à signaler.")
         return 0
 
     print(f"{len(targets)} page(s) à retrouver en ligne :")
