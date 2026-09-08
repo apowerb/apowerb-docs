@@ -1,10 +1,438 @@
 ---
-title: "Kubernetes"
-description: "Deploying apowerb on Kubernetes."
+title: "Kubernetes, step by step"
+description: "Installing the whole apowerb stack on a cluster, from an empty cluster to a public HTTPS address — and the traps, with their remedies."
 ---
 
-Apply the static manifests from the `k8s/` folder.
+Every step below was run on a real cluster (k0s v1.36.3, three nodes) before
+being written down. The commands are the ones that worked; the **Traps**
+section at the end lists what went wrong on the way, with the symptom that
+gives each one away.
+
+<Note>
+  Deploying means installing the **Helm chart**, `apowerb-chart`. The static
+  manifests in the repository's `k8s/` folder predate it and describe an
+  incomplete stack — see [Trap 8](#trap-8-the-old-static-manifests).
+</Note>
+
+## What you need before starting
+
+| | |
+| --- | --- |
+| A Kubernetes cluster | 1.28 or later. Three nodes of 4 vCPU / 8 GB is comfortable for the full stack |
+| `kubectl` | within one minor version of the server |
+| `helm` | 3.8 or later (OCI registry support) |
+| A storage class | **the cluster does not necessarily have one** — [step 2](#2-storage) |
+| An ingress controller | for a public address — [step 3](#3-ingress-controller) |
+| A DNS name | pointed at the ingress load balancer — [step 8](#8-going-public) |
+
+## 1. Reach the cluster
 
 ```bash
-kubectl apply -f k8s/
+export KUBECONFIG=~/.kube/config
+kubectl get nodes
 ```
+
+Every node must be `Ready`. `kubectl version` should show a client at most one
+minor version away from the server; further apart, some commands fail in
+puzzling ways.
+
+## 2. Storage
+
+**Check first — this is the single most common reason nothing starts.**
+
+```bash
+kubectl get storageclass
+```
+
+`No resources found` means no volume can ever be created: PostgreSQL and the
+data volume would stay `Pending` forever, and the pods with them. Managed
+clusters differ wildly here; some ship a class, some only offer object storage
+(which does **not** suit PostgreSQL).
+
+If the list is empty, `local-path-provisioner` gives you node-local volumes in
+one manifest:
+
+```bash
+curl -sL -o local-path-storage.yaml \
+  https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.37/deploy/local-path-storage.yaml
+kubectl apply -f local-path-storage.yaml
+kubectl -n local-path-storage rollout status deploy/local-path-provisioner --timeout=120s
+```
+
+Make it the default, otherwise claims that name no class — the chart's — stay
+unbound:
+
+```bash
+kubectl patch storageclass local-path \
+  -p '{"metadata":{"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+kubectl get storageclass
+```
+
+You want to read `local-path (default)`.
+
+<Warning>
+  A node-local volume lives on **one** node's disk. It is enough for a single
+  PostgreSQL replica and for `ReadWriteOnce` data, and it is not
+  highly available: losing the node loses the volume. Back the database up, or
+  use your provider's block CSI driver when it has one.
+</Warning>
+
+Prove it works before going further — and mind that the check needs a **pod**,
+not just a claim ([Trap 1](#trap-1-a-pvc-that-stays-pending-on-purpose)):
+
+```bash
+kubectl apply -f - <<'YAML'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: probe-pvc}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: {requests: {storage: 1Gi}}
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: probe-pod}
+spec:
+  restartPolicy: Never
+  containers:
+    - name: writer
+      image: busybox:1.37
+      command: ["sh","-c","echo ok > /data/marker && cat /data/marker && sleep 20"]
+      volumeMounts: [{name: data, mountPath: /data}]
+  volumes:
+    - {name: data, persistentVolumeClaim: {claimName: probe-pvc}}
+YAML
+sleep 25 && kubectl get pvc probe-pvc && kubectl logs probe-pod
+kubectl delete pvc probe-pvc pod probe-pod
+```
+
+`Bound`, and `ok` in the logs. Anything else, stop here: the rest cannot work.
+
+## 3. Ingress controller
+
+Needed only for a public address; skip it if you will use `port-forward`.
+
+Install **Traefik** or **ingress-nginx** — most managed Kubernetes offerings
+have both as a one-click add-on, which is the simplest path since the
+provider then also wires the load balancer. Then:
+
+```bash
+kubectl get ingressclass
+kubectl get svc -A | grep LoadBalancer
+```
+
+Note the class name (`traefik`, `nginx`…) and the `EXTERNAL-IP` of the
+controller's service: that address is what your DNS record will point to.
+
+## 4. cert-manager and an issuer
+
+Installing cert-manager is not enough — **it issues nothing until an issuer
+exists**.
+
+```bash
+kubectl get pods -n cert-manager
+```
+
+Then create the issuers. Two of them: production, and staging — which you use
+first, because Let's Encrypt blocks an account for a week after five failures
+in an hour, and the first attempt rarely succeeds.
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: you@example.com          # Let's Encrypt mails expiry notices here
+    privateKeySecretRef:
+      name: letsencrypt-staging-account-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik   # your class from step 3
+```
+
+The production issuer is the same with
+`https://acme-v02.api.letsencrypt.org/directory` and its own key secret name.
+Both are ready-made in the hosting repository under
+`k8s/cert-manager/cluster-issuer-letsencrypt.yaml`.
+
+```bash
+kubectl apply -f k8s/cert-manager/cluster-issuer-letsencrypt.yaml
+kubectl get clusterissuer
+```
+
+`READY: True` on both means cert-manager registered with the ACME servers.
+
+<Warning>
+  Use `ingressClassName`, **not** `class`. The latter goes through the legacy
+  `kubernetes.io/ingress.class` annotation and is only recommended for
+  ingress-gce. With it, the challenge Ingress is created without a recognised
+  class, the controller ignores it, and the certificate sits at
+  `Ready: False` while nothing reports an error.
+</Warning>
+
+## 5. Secrets
+
+Five values. Two of them are mandatory — the chart refuses to install without
+the th2pulse tokens, because that service does not start without them.
+
+```bash
+umask 077
+cat > values-secrets.yaml <<YAML
+backend:
+  env:
+    encryptKey: "$(openssl rand -base64 32)"
+th2etl:
+  apiKey: "$(openssl rand -hex 32)"
+th2pulse:
+  ingestToken: "$(openssl rand -hex 32)"
+  queryToken: "$(openssl rand -hex 32)"
+postgres:
+  password: "$(openssl rand -hex 16)"
+YAML
+chmod 600 values-secrets.yaml
+```
+
+<Warning>
+  Keep this file, out of version control, and pass it to **every** later
+  `helm upgrade`. Without it the Secret is rewritten with empty strings — and
+  a changed `ENCRYPT_KEY` makes every connected integration unreadable, since
+  it is the key their OAuth tokens were encrypted with. See
+  [Trap 4](#trap-4-an-upgrade-that-empties-the-secret).
+</Warning>
+
+## 6. Install
+
+Start without an Ingress: fewer moving parts, and a public name is not needed
+to know whether the stack runs.
+
+```bash
+helm upgrade --install apowerb \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1 \
+  --namespace apowerb --create-namespace \
+  --values values-secrets.yaml --timeout 10m
+```
+
+Pulling the images takes a few minutes on a fresh cluster — the backend image
+alone is around 250 MB.
+
+## 7. Check what actually runs
+
+```bash
+kubectl -n apowerb get pods
+kubectl -n apowerb get pvc
+kubectl -n apowerb logs job/apowerb-th2etl-seed
+```
+
+What a healthy install looks like:
+
+- **six pods `Running`**: backend, frontend, postgres, th2etl, th2pulse,
+  otel-collector;
+- **`apowerb-th2etl-seed` `Completed`** — it is a `Job`, so `0/1 Completed` is
+  the success state, not a failure;
+- **two PVCs `Bound`**: the data volume and the database's.
+
+A couple of restarts on `th2etl` and `th2pulse` at first start are expected —
+[Trap 3](#trap-3-th2etl-and-th2pulse-restart-twice).
+
+Then reach the services:
+
+```bash
+kubectl -n apowerb port-forward svc/apowerb-backend 18000:8000 &
+kubectl -n apowerb port-forward svc/apowerb-frontend 13000:3000 &
+curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/health      # 200
+curl -s localhost:18000/api/config                                   # public flags
+curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/api/config/setup  # 401
+curl -s -o /dev/null -w "%{http_code}\n" localhost:13000/            # 200
+```
+
+`401` on `/api/config/setup` is the right answer: authentication comes before
+the checklist. A `404` there would mean the backend image predates it.
+
+## 8. Going public
+
+Point an **A record** at the `EXTERNAL-IP` from step 3, wait for it to
+resolve, then upgrade with the Ingress — with the **staging** issuer first:
+
+```bash
+helm upgrade --install apowerb \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1 \
+  --namespace apowerb --values values-secrets.yaml \
+  --set ingress.enabled=true \
+  --set ingress.className=traefik \
+  --set ingress.host=apowerb.example.com \
+  --set ingress.tlsEnabled=true \
+  --set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-staging
+```
+
+Nothing else to set for the public address: with an Ingress enabled,
+`publicUrls.appPublicUrl` and `publicUrls.publicBaseUrl` are derived from
+`ingress.host` and `ingress.tlsEnabled`. That one value feeds nine settings in
+the core — the CORS origins and the GitHub, Google and Outlook Mail callbacks —
+so setting them by hand is how they end up disagreeing.
+
+Watch the certificate being issued:
+
+```bash
+kubectl -n apowerb get certificate
+kubectl -n apowerb describe certificate apowerb-tls | tail -20
+```
+
+Once `READY: True` with staging, swap the annotation to `letsencrypt-prod`,
+delete the staging secret so a real certificate is requested, and check the
+site in a browser:
+
+```bash
+kubectl -n apowerb delete secret apowerb-tls
+```
+
+## 9. The first administrator
+
+A fresh database has no administrator, and no route creates one. Two settings
+do:
+
+```bash
+helm upgrade --install apowerb ... \
+  --set superadmin.email=admin@example.com \
+  --set superadmin.password='<a strong one>'
+```
+
+An unknown account with a password is **created** as admin; an existing one is
+**promoted**, and its password is never rewritten. Then sign in and open
+**Admin → Configuration**: the screen lists every capability this installation
+has, and the sidebar badge counts what is still missing. That is the shortest
+path to knowing what is left to configure — see
+[What needs configuring](/configuration).
+
+## 10. Upgrading and removing
+
+```bash
+helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
+  --version <new> --namespace apowerb --values values-secrets.yaml
+helm -n apowerb list
+```
+
+Uninstalling leaves the data volume behind, on purpose — it carries
+`helm.sh/resource-policy: keep`:
+
+```bash
+helm -n apowerb uninstall apowerb
+kubectl -n apowerb get pvc            # apowerb-data is still there
+```
+
+---
+
+## Traps
+
+### Trap 1: a PVC that stays Pending on purpose
+
+**Symptom.** You create a claim to test the storage; it stays `Pending`. It
+looks like the storage is broken.
+
+**Cause.** Storage classes with `volumeBindingMode: WaitForFirstConsumer` —
+`local-path` among them — only create the volume when a **pod** needs it. This
+is by design: the volume is placed on the node the pod is scheduled to.
+
+**Remedy.** Test with a claim *and* a pod, as in [step 2](#2-storage).
+`kubectl get storageclass` shows the mode.
+
+### Trap 2: no storage class at all
+
+**Symptom.** Same `Pending`, but with a pod waiting too, and
+`kubectl describe pvc` says: `no persistent volumes available for this claim
+and no storage class is set`.
+
+**Cause.** The cluster has no default storage class — common on lean managed
+clusters.
+
+**Remedy.** [Step 2](#2-storage). Check `kubectl get storageclass` **before**
+installing, not after wondering why nothing starts.
+
+### Trap 3: th2etl and th2pulse restart twice
+
+**Symptom.** Right after install, both show `RESTARTS 2`, with
+`Connection refused` on port 5432 in the previous container's logs.
+
+**Cause.** They open the database before PostgreSQL accepts connections, exit,
+and are restarted. The chart has no init container waiting on the database.
+
+**Remedy.** None needed: Kubernetes recovers, and both reach `Running` within
+a couple of minutes. Worry only if the count keeps climbing — then read
+`kubectl -n apowerb logs <pod> --previous`, which will name a different cause.
+
+### Trap 4: an upgrade that empties the Secret
+
+**Symptom.** After a `helm upgrade`, integrations no longer connect and agents
+lose their stored credentials.
+
+**Cause.** `helm upgrade` without `--values values-secrets.yaml` re-renders the
+Secret from the chart's defaults — empty strings. `ENCRYPT_KEY` is what the
+integrations' OAuth tokens were encrypted with; change it and they become
+unreadable.
+
+**Remedy.** Always pass the same values file. Back it up with your other
+secrets — it is not recoverable from the cluster once overwritten.
+
+### Trap 5: a certificate stuck at Ready: False
+
+**Symptom.** `kubectl get certificate` shows `READY: False` and stays there,
+without an obvious error.
+
+**Causes, in the order worth checking.**
+
+1. The DNS name does not resolve to the ingress load balancer yet, or port 80
+   is closed — the HTTP-01 challenge needs both.
+2. The issuer uses `class` instead of `ingressClassName` (see
+   [step 4](#4-cert-manager-and-an-issuer)).
+3. The Let's Encrypt rate limit has been hit — five failures in an hour blocks
+   the account for a week. This is what the staging issuer is for.
+
+```bash
+kubectl -n apowerb describe certificate apowerb-tls
+kubectl -n apowerb get challenge
+```
+
+The `Challenge` object names the real reason.
+
+### Trap 6: a Service stuck in Pending
+
+**Symptom.** `kubectl get svc` shows `EXTERNAL-IP: <pending>` forever.
+
+**Cause.** `service.frontend.type=LoadBalancer` on a cluster whose provider
+gives no load balancer.
+
+**Remedy.** The chart defaults to `ClusterIP` for exactly this reason. Reach
+the interface through the Ingress, or `kubectl port-forward`.
+
+### Trap 7: pulling the chart from the old address
+
+**Symptom.** `helm install` succeeds and the stack comes up — without th2etl,
+th2pulse, the collector, or the data volume.
+
+**Cause.** The chart used to be published to `apowerb/apowerb`, next to the
+backend **images**, and those old versions are still pullable. A stale command
+line therefore *works*, which is what makes it dangerous: it silently installs
+the stack as it was several versions ago.
+
+**Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
+
+```bash
+helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1
+```
+
+The `name` must read `apowerb-chart`.
+
+### Trap 8: the old static manifests
+
+**Symptom.** `kubectl apply -f k8s/` installs something that looks right but
+has no orchestrator, no log store, no collector and no data volume, with an
+Ingress on `apowerb.local`.
+
+**Cause.** Those manifests predate the chart and were kept for reference.
+
+**Remedy.** Use the chart. The `k8s/` folder now holds only what lives
+*beside* a release — the cert-manager issuers, which are cluster-wide and do
+not belong to an application chart.
