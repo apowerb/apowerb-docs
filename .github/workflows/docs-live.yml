@@ -1,0 +1,52 @@
+name: Docs live
+
+# La doc doit être en ligne, pas seulement mergée.
+#
+# Ce workflow ne DÉCLENCHE pas la publication : Mintlify déploie ce dépôt tout
+# seul, et son API de déclenchement demande un plan supérieur — elle répond
+# `401 {"error":"Please upgrade to access this route."}`. Mesuré le 08/09/2026.
+#
+# Il vérifie donc le résultat plutôt que le mécanisme : la page servie
+# contient-elle un mot que ce commit vient d'écrire ? Cette question reste la
+# bonne quel que soit le plan, l'API, ou la façon dont la publication se fait.
+#
+# Les « Failed » vus dans le journal Mintlify ce matin-là n'étaient pas une
+# panne de déploiement : le dépôt portait une balise `</Steps>` fermée trop
+# tôt, `mint validate` échouait, et un contenu invalide ne part pas en ligne.
+# C'est le contenu qui bloquait, pas le tuyau — et c'est précisément ce que ce
+# contrôle rend visible, au lieu de le laisser passer en silence.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docs-live
+  cancel-in-progress: true
+
+jobs:
+  live:
+    name: Le site sert-il ce commit ?
+    runs-on: ubuntu-latest
+    # La construction Mintlify prend quelques minutes ; au-delà de dix c'est
+    # une panne, pas de la lenteur, et le script le dit.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Le script compare l'avant et l'après pour choisir son témoin :
+          # sans l'historique, `git show <sha>:<fichier>` n'a rien à montrer.
+          fetch-depth: 0
+
+      - name: Retrouve en ligne ce que ce push a écrit
+        run: |
+          BEFORE="${{ github.event.before }}"
+          # Un dispatch manuel n'a pas de « avant » : on prend le parent.
+          if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            BEFORE="${{ github.sha }}^"
+          fi
+          python3 .github/scripts/check_docs_live.py "$BEFORE" "${{ github.sha }}"
