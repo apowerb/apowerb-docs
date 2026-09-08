@@ -51,9 +51,10 @@ Two guards keep the site from drifting behind what is actually deployed:
 </Steps>
 
 <Warning>
-  On 8 September 2026 this site served
+  On 8 September 2026 this site served, for an hour after the chart had moved
+  to `apowerb/apowerb-chart` 0.4.1, the command it used to carry:
+  {/* docs-in-sync: ignore — quoting the stale command on purpose */}
   `helm install apowerb oci://registry-1.docker.io/apowerb/apowerb --version 0.2.0`
-  for an hour after the chart had moved to `apowerb/apowerb-chart` 0.4.1.
 
   The reason it went unnoticed is worth remembering: **the stale command still
   worked**. The old chart is still pullable, so a reader got a silent,
