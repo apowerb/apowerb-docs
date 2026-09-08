@@ -22,7 +22,7 @@ two th2pulse tokens — that service does not start without them, so failing at
 install time is the honest moment to say it.
 
 ```bash
-helm upgrade --install apowerb ./helm/apowerb \
+helm upgrade --install apowerb ./helm/apowerb-chart \
   --namespace apowerb --create-namespace \
   --set backend.env.encryptKey="$(openssl rand -base64 32)" \
   --set th2etl.apiKey="$(openssl rand -hex 32)" \
@@ -38,21 +38,24 @@ helm upgrade --install apowerb ./helm/apowerb \
   version control and pass it with `--values`.
 </Warning>
 
-<Warning>
-  **Aucune version de ce chart n'est publiée pour l'instant.** Le workflow
-  `release-helm.yml` d'`apowerb-hosting` échoue à chaque push sur `main` —
-  `chart-releaser` sort en `exit status 128` faute de branche `gh-pages` — donc
-  il n'existe ni tag, ni release, ni chart sur les deux registres. La commande
-  ci-dessous est celle qui marchera une fois le chart publié, ce qui viendra
-  après un premier `helm install` réussi sur un vrai cluster. En attendant,
-  installez depuis les sources.
-</Warning>
-
-Une fois le chart publié :
+## From the published chart
 
 ```bash
-helm install apowerb oci://registry-1.docker.io/apowerb/apowerb --version 0.2.0
+helm install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1
 ```
+
+<Note>
+  The chart moved to its own Docker Hub repository. It used to be pushed to
+  `apowerb/apowerb`, alongside the backend **images** — a repository cannot be
+  subdivided there, and `helm push` names it after the chart. Versions `0.2.0`
+  and `0.4.0` stay where they were published; nothing was deleted. Anything
+  from `0.4.1` on lives at `apowerb/apowerb-chart`.
+</Note>
+
+<Warning>
+  This chart has been validated by `helm lint` and `kubeconform`, and installed
+  on no cluster yet. Treat the first `helm install` as the real test.
+</Warning>
 
 ## Storage
 
@@ -87,7 +90,7 @@ kubectl -n apowerb logs job/apowerb-th2etl-seed
 Nothing beyond the product itself is mandatory:
 
 ```bash
-helm upgrade --install apowerb ./helm/apowerb \
+helm upgrade --install apowerb ./helm/apowerb-chart \
   --set th2etl.enabled=false \
   --set th2pulse.enabled=false \
   --set otelCollector.enabled=false \
@@ -98,15 +101,39 @@ Seven objects instead of sixteen. The interface then reports those features as
 not configured instead of failing on them — see
 [What needs configuring](/configuration).
 
-## Ingress
+## Ingress and TLS
 
-`ingress.enabled: true` in `values.yaml`.
+The interface is reached through the Ingress: since `0.4.0` the frontend
+Service is a `ClusterIP`, not a `LoadBalancer` — no provider load balancer, and
+no public IP billed for it.
+
+```bash
+helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1 \
+  --set ingress.enabled=true \
+  --set ingress.className=traefik \
+  --set ingress.host=apowerb.example.com \
+  --set ingress.tlsEnabled=true \
+  --set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-prod
+```
+
+`tlsEnabled` writes the Ingress `tls` section; the secret name is derived
+(`apowerb-tls`) unless `ingress.tlsSecretName` names one, which is what
+cert-manager fills from the annotation above.
+
+<Warning>
+  Left at `false`, the interface is served in clear — and the address
+  verification links it builds would go out over `http://`.
+</Warning>
+
+Without an Ingress, nothing is exposed outside the cluster: set
+`service.frontend.type=LoadBalancer`, or reach it with
+`kubectl port-forward`. The install notes say which case you are in.
 
 ## Checks that need no cluster
 
 ```bash
-helm lint helm/apowerb
-helm template rel helm/apowerb \
+helm lint helm/apowerb-chart
+helm template rel helm/apowerb-chart \
   --set th2pulse.ingestToken=x --set th2pulse.queryToken=y \
   | kubeconform -strict -summary -kubernetes-version 1.30.0
 ```
