@@ -29,9 +29,17 @@ the tag and the runner.
 
 ## Documentation — before the deployment, not after
 
-The docs deploy themselves from `main` (`.github/workflows/publish.yml` calls
-the Mintlify API and **waits** for the build to land). Nothing else publishes
-this site: merging alone used to do nothing at all.
+Mintlify deploys this repository on its own, and `docs-live` checks that it
+actually did: after every push to `main`, it looks for a word the commit just
+wrote **on the served page**. It tests the result, not the mechanism.
+
+<Note>
+  Triggering the deployment from CI was the first design, and it does not work
+  here: Mintlify's update API answers
+  `401 {"error":"Please upgrade to access this route."}` on this plan. Checking
+  the outcome turned out to be the better question anyway — it stays true
+  whatever the plan, and it catches a deployment that silently did not happen.
+</Note>
 
 Two guards keep the site from drifting behind what is actually deployed:
 
@@ -44,9 +52,15 @@ Two guards keep the site from drifting behind what is actually deployed:
     merged first.
   </Step>
 
-  <Step title="This repository publishes as soon as it is merged">
-    The publish workflow polls `update-status` until Mintlify answers `success`
-    or `failure`. A triggered publication is not a finished one.
+  <Step title="This repository proves the site caught up">
+    `docs-live` picks a word each changed page gained, then polls the live page
+    for up to ten minutes. A merge is not a publication, and a publication that
+    never lands has to be visible.
+
+    When it fails, look at the Mintlify project log first: an invalid page
+    stops the deployment, and that is the most common cause here — it is
+    exactly what happened on 8 September, when a `</Steps>` closed too early
+    made `mint validate` fail and three merges never went live.
   </Step>
 </Steps>
 
