@@ -1,0 +1,59 @@
+---
+title: "Orchestrator"
+description: "Scheduled pipelines, served by th2etl."
+---
+
+Without it, the **Orchestrator** screen has nothing to list and says so — it
+does not call an address where nothing answers.
+
+## Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `ORCHESTRATOR` | yes | `th2etl`. Unset means `mage`, the older backend |
+| `TH2ETL_BASE_URL` | yes | The instance — `http://th2etl:8000` inside a Compose network |
+| `TH2ETL_API_KEY` | yes | Must equal that instance's own `API_KEY` |
+
+<Warning>
+  Silence selects `mage`. A deployment meant to run on th2etl must say so
+  explicitly, or the schedules land where nobody is looking.
+</Warning>
+
+## Running th2etl
+
+The instance needs the same database as apowerb and the same `ENCRYPT_KEY`, so
+that credentials written by one are readable by the other:
+
+| Variable | Description |
+| --- | --- |
+| `DATABASE_HOST` / `_PORT` / `_NAME` / `_USER` / `_PASSWORD` | The apowerb database |
+| `API_KEY` | The key the backend presents — generate with `openssl rand -hex 32` |
+| `ADK_BASE_URL` | The apowerb backend, so a pipeline can call an agent |
+| `ENCRYPT_KEY` | Identical to apowerb's |
+
+Both the Compose stack and the Helm chart ship it; see
+[Docker Compose](/deployment/dockercompose) and [Helm chart](/deployment/helmchart).
+
+## The seed
+
+Default pipelines are posted by a one-shot command,
+`python -m th2etl.seeds.default_pipelines`. It is **idempotent** — running it
+again does not duplicate anything — and it must be run as a task that ends: in
+Kubernetes it is a `Job`, in Compose a service with `restart: "no"`. As a
+long-running service it would exit 0 and be restarted forever.
+
+<Note>
+  Image tags do not travel between namespaces. `apowerb/th2etl:0.0.11` and
+  `th2farid/th2etl:0.0.11` are different images with different digests. Compare
+  digests, not version numbers.
+</Note>
+
+## Check
+
+```bash
+curl -H "Authorization: Bearer <apowerb token>" https://your-host/api/pipelines
+```
+
+A `200` with a list means the whole chain works. A `503` carrying
+`{"code": "NOT_CONFIGURED"}` means the backend knows it has no orchestrator —
+that is the checklist talking, not a failure.

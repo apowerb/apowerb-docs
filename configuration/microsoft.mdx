@@ -1,0 +1,44 @@
+---
+title: "Microsoft"
+description: "One app registration for Outlook, OneDrive, Teams, Outlook triggers and campaigns."
+---
+
+Three features share one set of credentials: the Microsoft integrations, the
+Outlook triggers, and e-mail campaigns. None of them is available until the app
+registration exists.
+
+## Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `MICROSOFT_INTEGRATION_CLIENT_ID` | yes | Application (client) ID |
+| `MICROSOFT_INTEGRATION_CLIENT_SECRET` | yes | Client secret **value** — not its ID |
+| `MICROSOFT_INTEGRATION_TENANT_ID` | no | `common` for any account, or your tenant to restrict it |
+| `MICROSOFT_INTEGRATION_REDIRECT_URI` | no | Defaults to `<PUBLIC_BASE_URL>/integrations/microsoft/callback` |
+
+## Creating the registration
+
+1. **Microsoft Entra admin center** → *App registrations* → *New registration*.
+2. Supported account types: *Accounts in any organizational directory and
+   personal Microsoft accounts* unless you mean to restrict it.
+3. Redirect URI, platform **Web**: `https://your-host/integrations/microsoft/callback`.
+   It must match `MICROSOFT_INTEGRATION_REDIRECT_URI` character for character —
+   a trailing slash is a different URI.
+4. *Certificates & secrets* → *New client secret*. Copy the **Value** column
+   immediately; it is shown once, and the *Secret ID* is not the secret.
+5. *API permissions* → *Microsoft Graph* → *Delegated*, then grant consent:
+   `offline_access`, `User.Read`, `Mail.Read`, `Mail.Send`,
+   `Files.ReadWrite.All`, `Calendars.ReadWrite`, `Chat.Read`.
+
+<Warning>
+  Client secrets expire — six or twenty-four months, chosen at creation.
+  When one expires, every connected integration stops refreshing its token and
+  users are asked to reconnect, with no other symptom. Note the date somewhere
+  that will outlive the session that created it.
+</Warning>
+
+## Check
+
+Restart the backend, then **Integrations** → *Outlook* → *Connect*. The consent
+screen means the registration is right; an `AADSTS` error names what is wrong —
+usually the redirect URI.

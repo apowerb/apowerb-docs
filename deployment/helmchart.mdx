@@ -1,15 +1,102 @@
 ---
 title: "Helm Chart"
-description: "Deploying apowerb using Helm."
+description: "Deploying apowerb and the services around it on Kubernetes."
 ---
 
-Install the chart from the local source tree.
+The chart deploys the backend, the interface and PostgreSQL, plus the three
+services the Compose stack runs — each behind a switch — and a volume for what
+the backend writes to disk.
+
+| Component | Default | Switch |
+| --- | --- | --- |
+| backend, interface, PostgreSQL | on | — |
+| `th2etl` + its seed `Job` | on | `th2etl.enabled` |
+| `th2pulse` (log store) | on | `th2pulse.enabled` |
+| OpenTelemetry collector | on | `otelCollector.enabled` |
+| `PersistentVolumeClaim` on `/data` | on | `persistence.enabled` |
+
+## Install
+
+Three secrets have to exist first. The chart **refuses to install** without the
+two th2pulse tokens — that service does not start without them, so failing at
+install time is the honest moment to say it.
 
 ```bash
 helm upgrade --install apowerb ./helm/apowerb \
-  --namespace apowerb \
-  --create-namespace \
-  --values ./helm/apowerb/values.yaml
+  --namespace apowerb --create-namespace \
+  --set backend.env.encryptKey="$(openssl rand -base64 32)" \
+  --set th2etl.apiKey="$(openssl rand -hex 32)" \
+  --set th2pulse.ingestToken="$(openssl rand -hex 32)" \
+  --set th2pulse.queryToken="$(openssl rand -hex 32)" \
+  --set postgres.password="$(openssl rand -hex 16)"
 ```
 
-To enable ingress, set `ingress.enabled: true` in `helm/apowerb/values.yaml`.
+<Warning>
+  Keep those values. A later `helm upgrade` without them rewrites the Secret
+  with empty strings — and `ENCRYPT_KEY` changing makes every connected
+  integration unreadable. Put them in a `values-secrets.yaml` kept out of
+  version control and pass it with `--values`.
+</Warning>
+
+From a published release:
+
+```bash
+helm install apowerb oci://registry-1.docker.io/apowerb/apowerb --version 0.2.0
+```
+
+## Storage
+
+`persistence.enabled` claims one volume, mounts it on `persistence.mountPath`
+(`/data`) and points `RUNTIME_ROOT` at it. Everything the backend writes lives
+under it: `bi_store`, `uploads`, `artifacts_store`, `agents_pool`.
+
+- Without it, an imported CSV is gone at the next restart of the backend pod,
+  and the dashboard reading it dies with it. `agents_pool` is the exception —
+  it is regenerated from the database.
+- The claim is `ReadWriteOnce`, so the backend stays at one replica unless the
+  storage class offers `ReadWriteMany`.
+- It carries `helm.sh/resource-policy: keep`: `helm uninstall` leaves the files
+  behind rather than deleting them with the release.
+
+Configuring [S3](/configuration/storage) makes BI files bypass the disk
+entirely.
+
+## The seed is a Job
+
+`th2etl-seed` posts the default pipelines and exits. It runs as a
+`post-install,post-upgrade` hook and retries while th2etl migrates the
+database. As a Deployment, Kubernetes would restart a container that exited 0 —
+a crash loop on a success.
+
+```bash
+kubectl -n apowerb logs job/apowerb-th2etl-seed
+```
+
+## A smaller stack
+
+Nothing beyond the product itself is mandatory:
+
+```bash
+helm upgrade --install apowerb ./helm/apowerb \
+  --set th2etl.enabled=false \
+  --set th2pulse.enabled=false \
+  --set otelCollector.enabled=false \
+  --set backend.env.encryptKey="$(openssl rand -base64 32)"
+```
+
+Seven objects instead of sixteen. The interface then reports those features as
+not configured instead of failing on them — see
+[What needs configuring](/configuration).
+
+## Ingress
+
+`ingress.enabled: true` in `values.yaml`.
+
+## Checks that need no cluster
+
+```bash
+helm lint helm/apowerb
+helm template rel helm/apowerb \
+  --set th2pulse.ingestToken=x --set th2pulse.queryToken=y \
+  | kubeconform -strict -summary -kubernetes-version 1.30.0
+```

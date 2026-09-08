@@ -1,0 +1,53 @@
+---
+title: "Logs and traces"
+description: "What feeds the Logging screen."
+---
+
+The **Logging** screen reads a store, `th2pulse`, which is fed by an
+OpenTelemetry collector, which is fed by the backend. Any link missing and the
+screen says it is not configured yet.
+
+```
+apowerb ──OTLP──▶ otel-collector ──▶ th2pulse ◀── the interface reads, server-side
+```
+
+## Backend
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | yes | The collector — `http://otel-collector:4318` |
+| `OTEL_SERVICE_NAME` | no | Name traces are attributed to, default `apowerb` |
+| `OTEL_METRICS_EXPORTER` | no | `none` unless you collect metrics as well |
+
+This single variable is what the checklist looks at for `observability`.
+
+## The store
+
+| Variable | Description |
+| --- | --- |
+| `TH2PULSE_DB_DSN` | Same database as apowerb |
+| `TH2PULSE_DB_SCHEMA` | A schema of its own, `th2pulse` |
+| `TH2PULSE_INGEST_TOKEN` | Presented by the collector on every export |
+| `TH2PULSE_QUERY_TOKEN` | Presented by the interface when it reads |
+
+<Warning>
+  Both tokens are mandatory: th2pulse refuses to start without them. Generate
+  each with `openssl rand -hex 32`.
+</Warning>
+
+## Interface
+
+| Variable | Description |
+| --- | --- |
+| `PULSE_API_URL` | The store — `http://th2pulse:4319` |
+| `PULSE_QUERY_TOKEN` | Same value as the store's query token |
+
+Both are read **server-side** by the route handlers and never reach the
+browser. Unset, the interface falls back to its own loopback where nothing
+listens, and the screen reports an unreachable store.
+
+## Check
+
+Run an agent, then open **Logging**. The run appears within a few seconds. An
+empty screen with no error usually means the collector is exporting to the
+wrong address — check its logs before suspecting the backend.
