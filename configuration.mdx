@@ -6,6 +6,60 @@ description: "Every environment variable read by the apowerb server."
 Configuration is read from the environment, usually through a `.env` file created
 from `.env.example`.
 
+## What this server has configured
+
+apowerb starts with almost nothing configured and **says so** rather than
+failing. A feature nobody has set up answers « not configured yet, contact your
+administrator » — never a 4xx or a 5xx.
+
+The server is the source of truth about its own state:
+
+```bash
+curl -H "Authorization: Bearer <token>" https://your-host/api/config/setup
+```
+
+```json
+{
+  "items": [
+    {
+      "key": "orchestration",
+      "configured": false,
+      "optional": false,
+      "blocks": ["orchestrator"],
+      "missing": ["TH2ETL_BASE_URL", "TH2ETL_API_KEY"],
+      "docs_url": "https://docs.apowerb.com/configuration/orchestration"
+    }
+  ],
+  "missing_count": 1
+}
+```
+
+The same answer feeds the interface: **Admin → Configuration** lists every
+capability, and the sidebar badge counts what is still missing.
+
+| Capability | Blocks | How to configure it |
+| --- | --- | --- |
+| `default_llm` | agents carrying no key of their own | [Shared model](/configuration/default-llm) |
+| `object_storage` | *nothing* — a local directory is the fallback | [File storage](/configuration/storage) |
+| `microsoft_integration` | Outlook, OneDrive, Outlook triggers, campaigns | [Microsoft](/configuration/microsoft) |
+| `google_integration` | Drive, Gmail, Calendar and their triggers | [Google](/configuration/google) |
+| `orchestration` | the Orchestrator screen, scheduled pipelines | [Orchestrator](/configuration/orchestration) |
+| `observability` | the Logging screen | [Logs and traces](/configuration/observability) |
+| `system_mail` | address verification, password reset | [System mail](/configuration/mail) |
+
+<Note>
+  `missing` holds variable **names**, never values, and the server sends it to
+  administrators only. Everyone else sees which features work — enough to know
+  it is not their mistake, and nothing that helps an attacker.
+</Note>
+
+<Warning>
+  Every setting below is read at startup. Restart the backend after changing
+  one, then reload **Admin → Configuration**. A value written where the process
+  never reads it changes nothing — check the environment of the container, not
+  the shell that started it.
+</Warning>
+
 ## Required
 
 | Variable | Description |
@@ -221,6 +275,7 @@ Where the server writes on disk. S3 keys keep their own namespace and are unaffe
 | `AGENTS_POOL_DIR` | `agents_pool` | Generated agent modules |
 | `ARTIFACTS_STORE_DIR` | `artifacts_store` | Artifacts, in local storage mode |
 | `UPLOADS_DIR` | `uploads` | Uploaded files, in local storage mode |
+| `BI_STORE_DIR` | `bi_store` | CSV and Excel files imported into BI, when S3 is not configured |
 | `TOOLBOX_DIR` | — | MCP toolbox location; empty means `RUNTIME_ROOT` |
 | `ROOT_PATH` | `http://localhost:8000` | Mount prefix when served behind a path-rewriting proxy |
 

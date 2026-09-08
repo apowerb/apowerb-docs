@@ -1,0 +1,45 @@
+---
+title: "Google"
+description: "One OAuth client for Drive, Gmail, Calendar and their triggers."
+---
+
+The Google integrations and their triggers share one OAuth client. Push
+notifications from Gmail need one variable more.
+
+## Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `GOOGLE_INTEGRATION_CLIENT_ID` | yes | OAuth 2.0 client ID |
+| `GOOGLE_INTEGRATION_CLIENT_SECRET` | yes | Client secret |
+| `GOOGLE_INTEGRATION_REDIRECT_URI` | no | Defaults to `<PUBLIC_BASE_URL>/integrations/google/callback` |
+| `GOOGLE_WEBHOOK_AUDIENCE` | for triggers | Expected `aud` of the JWT Google signs its push with |
+
+The checklist lists `GOOGLE_WEBHOOK_AUDIENCE` among the missing names as long
+as it is empty: connections work without it, incoming Gmail notifications do
+not.
+
+## Creating the client
+
+1. **Google Cloud Console** → a project → *APIs & Services*.
+2. Enable what your agents will use: Drive API, Gmail API, Calendar API,
+   Sheets API, Docs API.
+3. *OAuth consent screen*: External unless everyone is in your Workspace. While
+   the app is in *Testing*, only listed test users can connect, and refresh
+   tokens expire after seven days — publish it before rolling it out.
+4. *Credentials* → *Create credentials* → *OAuth client ID* → *Web application*.
+   Authorised redirect URI: `https://your-host/integrations/google/callback`.
+5. Copy the client ID and secret.
+
+## Gmail push notifications
+
+Beyond the client, Gmail triggers need a Pub/Sub topic — `GMAIL_PUBSUB_PROJECT_ID`
+and `GMAIL_PUBSUB_TOPIC` — and `GOOGLE_WEBHOOK_AUDIENCE`, the value the handler
+verifies before acting on a notification. Full walkthrough:
+[Gmail webhooks](/guides/integrations/google).
+
+## Check
+
+**Integrations** → *Google Drive* → *Connect*. `redirect_uri_mismatch` means
+the URI registered in the console differs from the one the server sends —
+compare them character for character, including the scheme.

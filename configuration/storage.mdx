@@ -1,0 +1,52 @@
+---
+title: "File storage"
+description: "Where uploaded files go: a local directory by default, S3 once configured."
+---
+
+This is the one capability that is **optional**: uploads work with nothing
+configured. The checklist reports `mode: "local"` and lists the S3 variables as
+missing — information, not a fault.
+
+## Local directory (default)
+
+Files land under the runtime root:
+
+| Directory | Variable | Holds |
+| --- | --- | --- |
+| `bi_store` | `BI_STORE_DIR` | CSV and Excel files imported into BI |
+| `uploads` | `UPLOADS_DIR` | files attached to an agent or a chat session |
+| `artifacts_store` | `ARTIFACTS_STORE_DIR` | artifacts produced by runs |
+
+All three are resolved against `RUNTIME_ROOT` when they are relative — a single
+setting moves everything the server writes to disk.
+
+<Warning>
+  A local directory lives inside the container. Without a mounted volume, an
+  imported CSV disappears at the next restart — and so does the dashboard that
+  reads it. On Docker Compose, mount a volume; on Kubernetes, the chart's
+  `persistence.enabled` claims one and points `RUNTIME_ROOT` at it. See
+  [Helm chart](/deployment/helmchart).
+</Warning>
+
+## S3, or any S3-compatible storage
+
+| Variable | Description |
+| --- | --- |
+| `STORAGE_MODE` | Set to `S3` |
+| `S3_BUCKET_NAME` | Bucket |
+| `S3_ENDPOINT` | Endpoint URL — required for a non-AWS provider |
+| `S3_REGION` | Region |
+| `S3_ACCESS_KEY` / `S3_ACCESS_KEY_SECRET` | Credentials |
+
+The capability flips to `mode: "s3"` only when **all six** are set: a bucket
+without credentials would fail on the first upload, which is exactly the
+failure this checklist exists to prevent.
+
+S3 keys keep their own namespace (`uploads/{agent}/{file}`); `RUNTIME_ROOT` and
+the directory settings do not affect them.
+
+## Check
+
+Import a CSV under **BI → Data**. In local mode the file appears under
+`bi_store`; in S3 mode it appears in the bucket, and the banner about the local
+directory disappears from the screen.

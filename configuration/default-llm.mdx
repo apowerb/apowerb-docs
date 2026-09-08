@@ -1,0 +1,36 @@
+---
+title: "Shared model"
+description: "The model agents fall back on when they carry no key of their own."
+---
+
+Without it, every agent needs its own API key before it can answer, and the
+model picker offers nothing by default.
+
+## Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `DEFAULT_LLM_MODEL` | yes | LiteLLM model id — `gemini/gemini-2.5-flash`, `openai/gpt-4o-mini`, `anthropic/claude-sonnet-4-5`… |
+| `DEFAULT_LLM_API_KEY` | yes | Key for that provider |
+| `DEFAULT_LLM_API_BASE` | no | Base URL, for a self-hosted or proxied provider |
+
+The checklist reports `default_llm` as configured only when **both** the model
+id and the key are set — a key alone points at nothing.
+
+## What users see
+
+The counter under the sidebar shows the tokens spent this month on the shared
+model. The open-source build **counts**; it does not cap. A monthly ceiling per
+user or per plan comes from a commercial brick — without it, no bar and no
+percentage, because a gauge without a limit would suggest a quota that does not
+exist.
+
+## Check
+
+```bash
+curl https://your-host/api/config
+```
+
+`default_llm_available: true` and a `default_llm_model_id` mean agents can run
+with no key of their own. This endpoint is public and deliberately says nothing
+about the key itself.

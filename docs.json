@@ -42,7 +42,16 @@
               {
                 "group": "Configuration",
                 "icon": "gear",
-                "pages": ["configuration"]
+                "pages": [
+                  "configuration",
+                  "configuration/default-llm",
+                  "configuration/storage",
+                  "configuration/microsoft",
+                  "configuration/google",
+                  "configuration/orchestration",
+                  "configuration/observability",
+                  "configuration/mail"
+                ]
               }
             ]
           },

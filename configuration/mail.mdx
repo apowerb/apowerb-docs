@@ -1,0 +1,41 @@
+---
+title: "System mail"
+description: "Address verification and password reset."
+---
+
+These are the messages apowerb sends on its own behalf — not the mail an agent
+sends through a connected mailbox, which belongs to
+[Microsoft](/configuration/microsoft) or [Google](/configuration/google).
+
+## Variables
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `SMTP_HOST` | yes | Relay host |
+| `SMTP_PORT` | yes | `587` for STARTTLS, `465` for implicit TLS |
+| `SMTP_FROM` | yes | Sender address |
+| `SMTP_USER` | no | Login, if the relay requires one |
+| `SMTP_PASSWORD` | no | Its password |
+| `APP_PUBLIC_URL` | yes in practice | Public URL of the **front** app: verification and reset links are built from it |
+
+The checklist looks at the first three. A relay that needs authentication but
+gets none will refuse the message at send time, not at startup.
+
+<Note>
+  Without SMTP the mailer is simply off: one log line, no error. Sign-up still
+  works as long as `AUTH_EMAIL_VERIFICATION_ENABLED` is `false` — which it is by
+  default. Turn verification on and the accounts of an installation with no
+  relay are stuck unverified, which is why the checklist names this capability.
+</Note>
+
+## Check
+
+Trigger a password reset from the sign-in screen and read the backend logs. A
+line naming the relay means the message left; the absence of any line means no
+mailer was configured.
+
+<Warning>
+  `APP_PUBLIC_URL` pointing at `localhost` produces links that work on the
+  server and nowhere else — the classic « the mail arrived but the link is
+  broken ».
+</Warning>
