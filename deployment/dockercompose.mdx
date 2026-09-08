@@ -36,7 +36,18 @@ Once `apowerb/*` images are published to a registry, the `build:` blocks become
 - **Backend package**: [`apowerb/apowerb` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
 - **Frontend package**: [`apowerb/apowerb-ui` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
 
-## Helm chart OCI registries
+## Helm chart OCI registry
 
-- **Docker Hub chart**: [oci://registry-1.docker.io/apowerb/apowerb](https://hub.docker.com/r/apowerb/apowerb)
-- **GitHub Container Registry chart**: [oci://ghcr.io/apowerb/apowerb](https://github.com/orgs/apowerb/packages)
+- **Docker Hub chart**: [oci://registry-1.docker.io/apowerb/apowerb-chart](https://hub.docker.com/r/apowerb/apowerb-chart)
+
+<Note>
+  The chart moved out of `apowerb/apowerb` in 0.4.1. That repository holds the
+  backend **images**, and a Docker Hub repository cannot be subdivided, so the
+  two artefacts shared one tag namespace: `apowerb/apowerb:0.4.0` was a 16 kB
+  chart, `:0.2.12` a 250 MB image. Charts published before the move are still
+  pullable at the old address; new ones are not.
+
+  GitHub Container Registry was dropped the same day. The push succeeded, but
+  a package is born **private** in a GitHub organization, so
+  a `helm pull` from `ghcr.io` answered `403` to anonymous users.
+</Note>
