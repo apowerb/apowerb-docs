@@ -1,0 +1,98 @@
+name: Publish
+
+# Mintlify ne publie pas ce dépôt tout seul. Mesuré le 08/09/2026 dans le
+# journal du projet : les merges de #4, #5 et #6 y figurent en « Failed », et
+# seul un « Manual update » lancé à la main apparaît en « Successful ». Entre
+# les deux, `docs.apowerb.com` a servi pendant une heure une commande
+# d'installation périmée -- qui fonctionnait, et installait la pile d'avant.
+#
+# Ce workflow remplace ce geste par l'API, et surtout il ATTEND le résultat :
+# déclencher une publication ne prouve pas qu'elle aboutit.
+#
+# Deux secrets, tous deux depuis https://app.mintlify.com/settings/organization/api-keys :
+#   MINTLIFY_API_KEY      une clé admin
+#   MINTLIFY_PROJECT_ID   l'identifiant du projet
+# Sans eux, le job ne devient pas rouge : il le dit et s'arrête. Un rouge
+# permanent finit par être ignoré, et c'est ainsi qu'une vraie panne se cache.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Deux publications simultanées se disputeraient le même site ; la dernière
+  # a raison, et les précédentes ne servent à rien.
+  group: mintlify-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to docs.apowerb.com
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger the update
+        id: trigger
+        env:
+          MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
+          MINTLIFY_PROJECT_ID: ${{ secrets.MINTLIFY_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${MINTLIFY_API_KEY:-}" ] || [ -z "${MINTLIFY_PROJECT_ID:-}" ]; then
+            echo "::warning::MINTLIFY_API_KEY ou MINTLIFY_PROJECT_ID absent — publication non déclenchée. Posez-les dans les secrets du dépôt, sinon la doc en ligne restera en retard sur main."
+            echo "skipped=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          code="$(curl -sS -o /tmp/trigger.json -w '%{http_code}' -X POST \
+            -H "Authorization: Bearer ${MINTLIFY_API_KEY}" \
+            "https://api.mintlify.com/v1/project/update/${MINTLIFY_PROJECT_ID}")"
+          # Le corps peut porter un message utile ; la clé, jamais -- elle ne
+          # voyage que dans l'en-tête.
+          cat /tmp/trigger.json || true
+          if [ "$code" != "202" ]; then
+            echo "::error::Mintlify a répondu $code au lieu de 202."
+            exit 1
+          fi
+          status_id="$(python3 -c "import json;print(json.load(open('/tmp/trigger.json')).get('statusId',''))")"
+          if [ -z "$status_id" ]; then
+            echo "::error::202 sans statusId : impossible de suivre cette publication."
+            exit 1
+          fi
+          echo "statusId=$status_id" >> "$GITHUB_OUTPUT"
+          echo "skipped=false" >> "$GITHUB_OUTPUT"
+          echo "Publication déclenchée, statusId $status_id"
+
+      - name: Wait for it to land
+        if: steps.trigger.outputs.skipped == 'false'
+        env:
+          MINTLIFY_API_KEY: ${{ secrets.MINTLIFY_API_KEY }}
+          STATUS_ID: ${{ steps.trigger.outputs.statusId }}
+        run: |
+          set -euo pipefail
+          # Quinze minutes : une build Mintlify tient largement dedans, et
+          # au-delà c'est une panne, pas de la lenteur.
+          for i in $(seq 1 90); do
+            body="$(curl -sS -H "Authorization: Bearer ${MINTLIFY_API_KEY}" \
+              "https://api.mintlify.com/v1/project/update-status/${STATUS_ID}")"
+            status="$(printf '%s' "$body" | python3 -c "import json,sys;print(json.load(sys.stdin).get('status',''))" || echo "")"
+            case "$status" in
+              success)
+                echo "Publié. docs.apowerb.com sert désormais ce commit."
+                exit 0 ;;
+              failure)
+                echo "::error::La publication a échoué côté Mintlify."
+                printf '%s\n' "$body"
+                exit 1 ;;
+              queued|in_progress)
+                echo "  $status ($((i * 10))s)" ;;
+              *)
+                echo "::warning::statut inattendu : '${status:-vide}'"
+                printf '%s\n' "$body" ;;
+            esac
+            sleep 10
+          done
+          echo "::error::Toujours pas publié après 15 minutes."
+          exit 1

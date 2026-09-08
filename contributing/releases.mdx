@@ -27,6 +27,42 @@ the tag and the runner.
     runner.
 </Warning>
 
+## Documentation — before the deployment, not after
+
+The docs deploy themselves from `main` (`.github/workflows/publish.yml` calls
+the Mintlify API and **waits** for the build to land). Nothing else publishes
+this site: merging alone used to do nothing at all.
+
+Two guards keep the site from drifting behind what is actually deployed:
+
+<Steps>
+  <Step title="apowerb-hosting refuses a change its documentation contradicts">
+    `docs-in-sync` reads `helm/apowerb-chart/Chart.yaml` and compares its name,
+    version and path with every OCI address and `--version` written in these
+    pages. A pull request that moves the chart fails until the matching docs
+    pull request exists — an **open** one is enough, it does not have to be
+    merged first.
+  </Step>
+
+  <Step title="This repository publishes as soon as it is merged">
+    The publish workflow polls `update-status` until Mintlify answers `success`
+    or `failure`. A triggered publication is not a finished one.
+  </Step>
+</Steps>
+
+<Warning>
+  On 8 September 2026 this site served, for an hour after the chart had moved
+  to `apowerb/apowerb-chart` 0.4.1, the command it used to carry:
+  {/* docs-in-sync: ignore — quoting the stale command on purpose */}
+  `helm install apowerb oci://registry-1.docker.io/apowerb/apowerb --version 0.2.0`
+
+  The reason it went unnoticed is worth remembering: **the stale command still
+  worked**. The old chart is still pullable, so a reader got a silent,
+  successful install of the stack from before th2etl, th2pulse, the persistent
+  volume and 27 environment variables. No error, no red build, nothing to
+  notice. That is what these guards exist to make impossible.
+</Warning>
+
 ## Versioning
 
 Versions follow [semantic versioning](https://semver.org/). The changelog is the
