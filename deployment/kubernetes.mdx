@@ -211,7 +211,7 @@ to know whether the stack runs.
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.2 \
   --namespace apowerb --create-namespace \
   --values values-secrets.yaml --timeout 10m
 ```
@@ -259,7 +259,7 @@ resolve, then upgrade with the Ingress — with the **staging** issuer first:
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.2 \
   --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
@@ -289,6 +289,25 @@ site in a browser:
 kubectl -n apowerb delete secret apowerb-tls
 ```
 
+### Close port 80
+
+The certificate does not close the clear-text entrance —
+[Trap 9](#trap-9-https-served-but-http-still-answers). With Traefik, a
+Middleware and one more annotation:
+
+```bash
+kubectl apply -f k8s/traefik/redirect-https.yaml
+helm upgrade ... \
+  --set ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.middlewares"=apowerb-redirect-https@kubernetescrd
+```
+
+```bash
+curl -sI http://apowerb.example.com/ | head -2     # 308, Location: https://…
+```
+
+With ingress-nginx there is nothing to do: `ssl-redirect` applies as soon as a
+TLS section exists.
+
 ## 9. The first administrator
 
 A fresh database has no administrator, and no route creates one. Two settings
@@ -301,7 +320,11 @@ helm upgrade --install apowerb ... \
 ```
 
 An unknown account with a password is **created** as admin; an existing one is
-**promoted**, and its password is never rewritten. Then sign in and open
+**promoted**, and its password is never rewritten. Without a password, an
+unknown account produces nothing — an account nobody can sign into helps
+nobody. So on an installation where people register themselves, set
+`superadmin.email` alone: the person signs up, and the next backend start
+promotes them. Then sign in and open
 **Admin → Configuration**: the screen lists every capability this installation
 has, and the sidebar badge counts what is still missing. That is the shortest
 path to knowing what is left to configure — see
@@ -420,10 +443,23 @@ the stack as it was several versions ago.
 **Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
 
 ```bash
-helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.1
+helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.2
 ```
 
 The `name` must read `apowerb-chart`.
+
+### Trap 9: HTTPS served, but HTTP still answers
+
+**Symptom.** `https://` works with a valid certificate, and `http://` returns
+**200** with the same page instead of a redirect.
+
+**Cause.** `ingress.tlsEnabled` adds the TLS section; it does not close port
+80. The controller keeps serving the site in clear text.
+
+**Remedy.** The Middleware above, or nginx's `ssl-redirect`. Check with
+`curl -sI http://<host>/` — you want `308`, not `200`. This matters more than
+it looks: a visitor typing the address without `https://` submits their
+credentials unencrypted.
 
 ### Trap 8: the old static manifests
 
