@@ -71,3 +71,10 @@ reference silently drifts. Diff the `paths` to check, never `info.version`.
 ## Conventions
 
 Everything here is written in English, like the rest of the codebase.
+
+Contributing to this repository — previewing, the checks CI runs, and the two things
+that surprise newcomers — is covered in [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
+MIT — see [LICENSE](./LICENSE). Copyright (c) 2026 thaink².
