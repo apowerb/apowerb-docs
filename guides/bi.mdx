@@ -47,6 +47,38 @@ POST /api/v1/charts/shortcuts/timeseries   a time series
 `POST /api/v1/charts/{chart_id}/send-to-dashboard` pushes a chart onto the caller's chat
 dashboard — it is meant to be triggered by the user, not by an agent acting alone.
 
+### A chart whose data comes from an agent
+
+A chart can take `source_type: "agent"`, in which case its rows are whatever the agent
+answers. That answer has to be a JSON array of objects — one object per row — and nothing
+else. Two fields in `source.source_options` drive it:
+
+| Field | Description |
+| --- | --- |
+| `agent_ids` | The agents to run. Their rows are concatenated in order. |
+| `message` | What to ask them. Required in practice — see below. |
+
+```json
+{
+  "source_type": "agent",
+  "query": "",
+  "source_options": {
+    "agent_ids": [7],
+    "message": "Monthly revenue by region for the last 12 months"
+  }
+}
+```
+
+Without a `message`, the agent is only asked for the latest data with no indication of
+*which* data, and a capable agent answers with a question or an explanation rather than
+rows. `GET /api/v1/charts/{chart_id}/data` then returns **502**, and the message names the
+agent and points back at this field. In the interface, the instruction is the *What should
+the agent return?* box, next to the agent picker when you create the chart and in the edit
+panel afterwards.
+
+Reasoning is never mistaken for the answer: a model that emits a thinking summary
+alongside its reply has that summary discarded, and only the reply is read as data.
+
 ## Dashboards
 
 A dashboard is a grid of components. Charts are the usual ones, but a component can also
