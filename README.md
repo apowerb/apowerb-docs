@@ -71,3 +71,11 @@ reference silently drifts. Diff the `paths` to check, never `info.version`.
 ## Conventions
 
 Everything here is written in English, like the rest of the codebase.
+
+## License
+
+apowerb-docs is distributed under the [Apache License 2.0](./LICENSE).
+Copyright 2025-2026 thaink².
+
+"apowerb" and "thaink²" are trademarks of thaink². The licence covers the code,
+not the marks — see [TRADEMARK.md](https://github.com/apowerb/apowerb/blob/main/TRADEMARK.md).
