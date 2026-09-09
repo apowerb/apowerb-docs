@@ -5,7 +5,7 @@ This repository is the source of [docs.apowerb.com](https://docs.apowerb.com). I
 `docs.json`.
 
 By contributing, you agree that your contribution is licensed under the
-[MIT License](./LICENSE), like the rest of the apowerb stack. You keep the copyright on
+[Apache License 2.0](./LICENSE), like the rest of the apowerb stack. You keep the copyright on
 what you write.
 
 The published guide — how a change is proposed across the whole project — is at
