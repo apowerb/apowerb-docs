@@ -252,6 +252,11 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:13000/            # 200
 `401` on `/api/config/setup` is the right answer: authentication comes before
 the checklist. A `404` there would mean the backend image predates it.
 
+These checks go through a port-forward on purpose. The backend is never
+published directly: once the site is public, the frontend proxies `/api/*` to
+it, and nothing else reaches it — `/health` included
+([Trap 12](#trap-12-health-answers-200-in-the-cluster-and-404-on-the-domain)).
+
 <Warning>
   The checklist reports what is **configured**, never what is **reachable**. A capability can
   read `configured: true` while the provider refuses every call — see
@@ -532,6 +537,30 @@ meanwhile — or route the outbound traffic through an accepted address. Note th
 `curl -sI http://<host>/` — you want `308`, not `200`. This matters more than
 it looks: a visitor typing the address without `https://` submits their
 credentials unencrypted.
+
+### Trap 12: /health answers 200 in the cluster and 404 on the domain
+
+**Symptom.** An external uptime monitor pointed at `https://<host>/health`
+reports the service down, while every pod is `Running` and the site loads in a
+browser.
+
+**Cause.** The Ingress carries a single rule — `/` to the **frontend**. The
+backend is not published; the frontend proxies `/api/*` to it server-side.
+So `/api/config` reaches the backend through the domain, while `/health` sits
+outside `/api` and is answered by the SPA, which returns 404 for a route it
+does not know.
+
+**Remedy.** Nothing to repair — `/health` is the kubelet's liveness probe, and
+it answers where the probe runs. Verify it as in step 7, through a
+port-forward. For external monitoring, watch the site root (`200`) or
+`/api/config`, which is public and served by the backend:
+
+```bash
+kubectl -n apowerb port-forward svc/apowerb-backend 18000:8000 &
+curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/health   # 200
+curl -s -o /dev/null -w "%{http_code}\n" https://<host>/health     # 404, expected
+curl -s -o /dev/null -w "%{http_code}\n" https://<host>/api/config # 200
+```
 
 ### Trap 8: the old static manifests
 
