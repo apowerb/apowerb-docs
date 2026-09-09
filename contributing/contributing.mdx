@@ -21,11 +21,20 @@ Contributions go through pull requests on the relevant repository. The core is
   <Step title="Write the test with the change">
     A bug fix comes with a test that fails before it and passes after.
   </Step>
-  <Step title="Run the checks">
+  <Step title="Run the checks the CI will run">
+    The core ([`apowerb/apowerb`](https://github.com/apowerb/apowerb)):
+
     ```bash
     ruff check .
     ruff format .
-    pytest
+    DB_SCHEMA="" uv run pytest -q -m "not integration"
+    ```
+
+    This documentation site ([`apowerb/apowerb-docs`](https://github.com/apowerb/apowerb-docs)):
+
+    ```bash
+    mint validate
+    mint broken-links
     ```
   </Step>
 </Steps>
@@ -34,11 +43,22 @@ Contributions go through pull requests on the relevant repository. The core is
 
 - **Everything in the codebase is written in English** — code, comments, commit
   messages, pull request descriptions, documentation.
-- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
-  `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`.
+- Branches are named `<type>/<slug>`, matching the commit type:
+  `fix/sync-engines-pre-ping`, `docs/kubernetes-step-by-step`.
+- Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/).
+  The types in use are `feat`, `fix`, `docs`, `chore`, `test`, `refactor`, `perf`,
+  `ci` and `style`; append `!` for a breaking change. Subjects describe the behaviour
+  that now holds rather than the edit that was made.
 - Python is type-annotated; new modules should pass `ruff` without exemptions.
+
+Each repository states its own specifics in a `CONTRIBUTING.md` at its root:
+[the core](https://github.com/apowerb/apowerb/blob/main/CONTRIBUTING.md),
+[this site](https://github.com/apowerb/apowerb-docs/blob/main/CONTRIBUTING.md).
 
 ## Reporting a security issue
 
-Do not open a public issue for a vulnerability. Contact the maintainers directly so a
-fix can ship before the details are public.
+Do not open a public issue or a pull request for a vulnerability. Submit a private
+report through
+[GitHub Security Advisories](https://github.com/apowerb/apowerb/security/advisories/new),
+which keeps it confidential until a fix ships. The full policy is in
+[SECURITY.md](https://github.com/apowerb/apowerb/blob/main/SECURITY.md).
