@@ -13,17 +13,67 @@ model picker offers nothing by default.
 | `DEFAULT_LLM_MODEL` | yes | LiteLLM model id — `gemini/gemini-2.5-flash`, `openai/gpt-4o-mini`, `anthropic/claude-sonnet-4-5`… |
 | `DEFAULT_LLM_API_KEY` | yes | Key for that provider |
 | `DEFAULT_LLM_API_BASE` | no | Base URL, for a self-hosted or proxied provider |
+| `DEFAULT_LLM_USER_TOKEN_CAP` | no | Tokens one user may spend on the shared model per window. Default `1000000`; `0` removes the cap. |
+| `DEFAULT_LLM_GLOBAL_TOKEN_CAP` | no | Tokens the whole deployment may spend per window. Default `20000000`; `0` removes it. |
+| `DEFAULT_LLM_CAP_WINDOW_HOURS` | no | Length of the rolling window. Default `24`. |
 
 The checklist reports `default_llm` as configured only when **both** the model
 id and the key are set — a key alone points at nothing.
 
+## The cap
+
+The shared model is a key **you** pay for, and `/api/config` announces it to
+anonymous callers. So the open-source build caps it by default rather than
+leaving that to whoever installs a brick: one million tokens per user and
+twenty million for the deployment, over a rolling 24-hour window.
+
+Only consumption billed to the shared key counts. A user who brings their own
+API key pays for it themselves and is never capped by these settings.
+
+The window **rolls**; it does not reset on the hour or at midnight. A calendar
+reset would let one account spend a full allowance at 23:59 and another at
+00:01 — the ceiling that matters is what can be spent in any 24 hours, not what
+a counter reads.
+
+The second cap exists because the first one is only worth as much as the number
+of accounts is bounded. Self-registration is open by default
+(`AUTH_REGISTER_ENABLED`), so a per-user cap is one signup away from being
+lifted. The deployment cap is not.
+
+A refused run answers **402** before anything starts, with a body an interface
+can use:
+
+```json
+{
+  "code": "TOKEN_QUOTA_EXCEEDED",
+  "scope": "user",
+  "used": 1002340,
+  "cap": 1000000,
+  "window_hours": 24,
+  "retry_after_seconds": 3540
+}
+```
+
+`scope` is `user` or `deployment`, and `retry_after_seconds` is the wait until
+the oldest counted consumption leaves the window — the first moment budget
+comes back.
+
+Set a cap to `0` to remove it. If a commercial brick supplies its own ceiling,
+it takes over entirely and these settings are ignored: the core steps aside for
+the dedicated extension point, not for any add-on that happens to register a
+run guard.
+
+Should the consumption table be unreadable, the run is **allowed** and a
+warning is logged. A hiccup in accounting must not make the product mute — but
+the opening has to be audible.
+
 ## What users see
 
 The counter under the sidebar shows the tokens spent this month on the shared
-model. The open-source build **counts**; it does not cap. A monthly ceiling per
-user or per plan comes from a commercial brick — without it, no bar and no
-percentage, because a gauge without a limit would suggest a quota that does not
-exist.
+model. The bar and percentage come from a commercial brick, which supplies a
+monthly ceiling per user or per plan; without it the sidebar shows a counter
+only. That gauge and the cap above are separate: the cap protects the bill, the
+gauge tells a customer where they stand in their plan.
 
 ## Check
 
