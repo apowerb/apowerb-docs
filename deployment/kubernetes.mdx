@@ -252,6 +252,13 @@ curl -s -o /dev/null -w "%{http_code}\n" localhost:13000/            # 200
 `401` on `/api/config/setup` is the right answer: authentication comes before
 the checklist. A `404` there would mean the backend image predates it.
 
+<Warning>
+  The checklist reports what is **configured**, never what is **reachable**. A capability can
+  read `configured: true` while the provider refuses every call — see
+  [Trap 10](#trap-10-the-model-provider-refuses-the-clusters-outbound-address). The only proof
+  that a model answers is a real run.
+</Warning>
+
 ## 8. Going public
 
 Point an **A record** at the `EXTERNAL-IP` from step 3, wait for it to
@@ -447,6 +454,71 @@ helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.2
 ```
 
 The `name` must read `apowerb-chart`.
+
+### Trap 11: removing a secret from the values does not remove it from the cluster
+
+**Symptom.** You delete a credential from `values-secrets.yaml`, run `helm upgrade`, and the
+Secret still holds it.
+
+**Cause.** The chart writes a credential only when it is non-empty
+(`{{- if .Values.defaultLlm.apiKey }}`). Dropping it from the values makes the template stop
+*rendering* the key — and Helm does not delete a key that is simply absent from the new render.
+Measured on 09/09/26: the shared-model API key was still in `apowerb-secrets`, 53 characters
+long, after an upgrade that no longer declared it.
+
+This is the mirror image of [Trap 4](#trap-4-an-upgrade-that-empties-the-secret), and the more
+dangerous of the two: there you lose a secret you meant to keep; here you keep a secret you
+meant to destroy.
+
+**Remedy.** Delete the key explicitly, then restart so the pods stop carrying it:
+
+```bash
+kubectl -n apowerb get secret apowerb-secrets \
+  -o go-template='{{range $k,$v := .data}}{{$k}}{{"\n"}}{{end}}'
+kubectl -n apowerb patch secret apowerb-secrets --type=json \
+  -p '[{"op":"remove","path":"/data/DEFAULT_LLM_API_KEY"}]'
+kubectl -n apowerb rollout restart deploy/apowerb-backend
+```
+
+The Deployment keeps referencing the key with `optional: true`, so nothing breaks once it is
+gone — but check that before deleting a key from any chart that does not.
+
+### Trap 10: the model provider refuses the cluster's outbound address
+
+**Symptom.** The interface reports the shared model as **configured**, and every chat fails.
+The backend log names the provider, not the network:
+
+```
+GeminiException BadRequestError 400 FAILED_PRECONDITION
+"User location is not supported for the API use."
+```
+
+**Cause.** The provider geo-blocks the address the cluster leaves from — which is the hosting
+provider's NAT, not the region you picked. Measured on 09/09/26: the same key worked from one
+deployment and failed from a Kubernetes cluster **at the same host**, because the two products
+egress through different networks (`AS214504 Hostman LTD` versus `AS210976 Timeweb`), both
+geolocated in Germany.
+
+**Diagnosis.** Ask the pod, not your laptop — only its address matters:
+
+```bash
+kubectl -n apowerb exec deploy/<backend> -- python -c \
+  "import urllib.request;print(urllib.request.urlopen('https://api.ipify.org').read())"
+```
+
+Then look that address up: the *autonomous system* tells you more than the country. Test the
+providers themselves the same way — `401` means reachable and merely unauthenticated, a `403`
+or a `400` mentioning *location* means blocked.
+
+<Note>
+  Do not conclude "the key is invalid" from a 400 on Google's API before forcing IPv4: the same
+  key can answer 200 over IPv4 and 400 over IPv6, and the message is identical to the geo-block.
+  Check whether the pod even has IPv6 (`Network is unreachable` settles it).
+</Note>
+
+**Remedy.** Change provider — the fastest, and the checklist screen will tell users the truth
+meanwhile — or route the outbound traffic through an accepted address. Note that this affects
+**every** key: users' own keys hit the same wall, not just the shared one.
 
 ### Trap 9: HTTPS served, but HTTP still answers
 
