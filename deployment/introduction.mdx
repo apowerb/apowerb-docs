@@ -1,0 +1,55 @@
+---
+title: "Deployment"
+description: "Choose the right deployment model for apowerb and the hosting stack."
+---
+
+apowerb is designed to run either as a complete stack with the web interface and
+PostgreSQL, or as a backend service connected to your own database and infrastructure.
+
+The deployment repository ships ready-to-use assets for the most common hosting models,
+from local Docker setups to managed cloud services and Kubernetes.
+
+<CardGroup cols={2}>
+  <Card title="Docker Compose" icon="docker" href="/deployment/dockercompose">
+    The quickest path to bring the full stack up on a single host.
+  </Card>
+  <Card title="Kubernetes" icon="kubernetes" href="/deployment/kubernetes">
+    Run the same stack in a cluster with declarative manifests.
+  </Card>
+  <Card title="Helm chart" icon="helm" href="/deployment/helmchart">
+    Package and customize the deployment with a reusable chart.
+  </Card>
+  <Card title="Single VM / HTTPS" icon="lock" href="/deployment/virtual-machine">
+    Expose the stack behind Traefik with TLS on a single VM.
+  </Card>
+</CardGroup>
+
+## Deployment options
+
+Choose the operating model that fits your environment:
+
+- [Docker Compose](/deployment/dockercompose): best for local development, labs, and small production installs.
+- [Kubernetes](/deployment/kubernetes): best when you need scaling, rollouts, and cluster-based operations.
+- [Helm chart](/deployment/helmchart): best for repeatable installs on Kubernetes and GitOps workflows.
+- [Single VM / HTTPS with Traefik](/deployment/virtual-machine): useful for self-hosted environments behind a public endpoint.
+- [Secrets management](/deployment/secrets): keep environment variables, tokens, and credentials outside source control.
+
+## Managed and hosted platforms
+
+The repository also includes references for common managed environments and platform-specific setups:
+
+- [DigitalOcean](/deployment/digitalocean)
+- [Azure App Service](/deployment/azure-app-service)
+- [Google Cloud Run](/deployment/google-cloud-run)
+- [Podman](/deployment/podman)
+- [Portainer](/deployment/portainer)
+- [Hostman](/deployment/hostman)
+
+## Repository assets
+
+The deployment assets are concentrated in [`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting),
+which assembles the API, the web interface, and the database into a consistent stack.
+
+The same repository publishes deployment configurations and scripts for the supported
+environment types, making it easier to move from development to production without
+rewriting the stack.
