@@ -263,6 +263,7 @@
             "group": "Platforms",
             "icon": "server",
             "pages": [
+              "deployment/introduction",
               "deployment/dockercompose",
               "deployment/kubernetes",
               "deployment/helmchart",
