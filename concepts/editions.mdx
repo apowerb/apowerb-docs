@@ -96,3 +96,63 @@ def register(registry) -> None:
   `TH2_EXTENSIONS`. A stack that installs the brick but forgets the variable starts
   healthy, answers `200`, and silently lacks the capability.
 </Warning>
+
+## Interface slots
+
+The web interface has the same arrangement, in JavaScript. The core declares named
+**slots** and never imports what fills them; a brick registers a component for a slot at
+startup. With no brick, a slot renders `null` — that is the open-source product, not a
+degraded mode.
+
+Three slots exist today:
+
+| Slot | Where it renders | Empty by default means |
+|---|---|---|
+| `auth.providers` | Under the sign-in buttons | Only the credentials form is offered |
+| `auth.legal` | Footer of the sign-in screen | No legal notice is shown |
+| `sidebar.footer` | Bottom of the navigation sidebar | Nothing below the navigation |
+
+A brick is an object with a `name` and a `register(registry)` function, listed in
+`src/extensions/installed.js`:
+
+```jsx
+// src/extensions/mycompany-legal.jsx
+export const legalNotice = {
+  name: "mycompany-legal",
+  register(registry) {
+    registry.registerSlot("auth.legal", () => (
+      <p className="th-text-faint text-xs mt-6">
+        By continuing you accept our{" "}
+        <a href="https://example.com/privacy" className="underline">privacy policy</a>{" "}
+        and <a href="https://example.com/terms" className="underline">terms of use</a>.
+      </p>
+    ));
+  },
+};
+```
+
+```js
+// src/extensions/installed.js
+import { legalNotice } from "./mycompany-legal";
+
+export const bricks = [legalNotice];
+```
+
+The list is read at build time, so a brick means building your own image of the
+interface. The catalogue keys `AuthScreen.legalPrefix`, `AuthScreen.privacyPolicy`,
+`AuthScreen.legalAnd` and `AuthScreen.termsOfUse` stay in the core for a brick that
+wants the translated wording rather than its own.
+
+<Warning>
+  **Your terms, not someone else's.** Up to interface `0.1.22` the sign-in screen linked
+  `agent-dev.thaink2.fr/legal` — the vendor's own development instance — from every
+  published build. Any self-hosted install therefore pointed its visitors at a third
+  party's privacy policy and terms. Since `0.1.23` the core renders nothing there. If
+  your deployment needs a legal notice, it is yours to provide, through this slot.
+</Warning>
+
+<Note>
+  A flag would not have been enough. `NEXT_PUBLIC_OAUTH_EXCLUDE_PROVIDERS` hides sign-in
+  buttons, and the code for them still ships in the published bundle. An empty slot has
+  nothing to hide — the component was never imported.
+</Note>
