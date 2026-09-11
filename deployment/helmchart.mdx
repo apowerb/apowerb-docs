@@ -41,7 +41,7 @@ helm upgrade --install apowerb ./helm/apowerb-chart \
 ## From the published chart
 
 ```bash
-helm install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.3
+helm install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.4
 ```
 
 <Note>
@@ -109,7 +109,7 @@ Service is a `ClusterIP`, not a `LoadBalancer` — no provider load balancer, an
 no public IP billed for it.
 
 ```bash
-helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.3 \
+helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.4 \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
   --set ingress.host=apowerb.example.com \

@@ -211,7 +211,7 @@ to know whether the stack runs.
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.3 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.4 \
   --namespace apowerb --create-namespace \
   --values values-secrets.yaml --timeout 10m
 ```
@@ -271,7 +271,7 @@ resolve, then upgrade with the Ingress — with the **staging** issuer first:
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.3 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.4 \
   --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
@@ -455,7 +455,7 @@ the stack as it was several versions ago.
 **Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
 
 ```bash
-helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.3
+helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.4
 ```
 
 The `name` must read `apowerb-chart`.
