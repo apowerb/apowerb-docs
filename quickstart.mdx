@@ -32,6 +32,23 @@ docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
   `docker compose up` in that folder picks the wrong one.
 </Warning>
 
+<Note>
+  **Ports 3000 and 8000 must be free.** If something else already listens on
+  3000, Postgres and the API come up and the interface alone fails, on
+  `Bind for 0.0.0.0:3000 failed: port is already allocated` — a partial stack
+  that looks like a broken install. Pick other ports on the command itself,
+  without touching `.env`; Compose lets a shell variable win over the
+  `--env-file`:
+
+  ```bash
+  FRONT_PORT=3010 TH2AGENT_PORT=8010 \
+    docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
+  ```
+
+  The addresses below shift accordingly. Postgres publishes no host port at
+  all, so it never collides.
+</Note>
+
 `generate-secrets.sh` fills `DB_PASSWORD`, `ENCRYPT_KEY` and the service tokens
 with random values. It never overwrites a value that is already set — see
 [Secrets](/deployment/secrets) for why that matters.
