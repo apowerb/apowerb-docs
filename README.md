@@ -7,7 +7,6 @@
 **The source of docs.apowerb.com — technical documentation for the apowerb open-core stack.**
 
 [![Documentation](https://img.shields.io/badge/docs-apowerb.com-blue?style=for-the-badge&logo=googledocs&logoColor=white)](https://docs.apowerb.com/)
-[![Mintlify](https://img.shields.io/badge/built%20with-Mintlify-0DC5B1?style=for-the-badge)](https://mintlify.com/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-green.svg?style=for-the-badge)](LICENSE)
 [![Discord](https://img.shields.io/badge/Community-Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.com/channels/1470717940075597896)
 
@@ -26,11 +25,10 @@
 Source of [docs.apowerb.com](https://docs.apowerb.com) — the technical documentation for
 the apowerb open-core stack.
 
-Built with [Mintlify](https://mintlify.com). Pages are MDX; navigation and theming live
-in `docs.json`.
+Pages are MDX; navigation and theming live in `docs.json`.
 
-Mintlify does **not** build on push: a merge to `main` changes nothing on the live site
-until someone triggers *Manual update* from the Mintlify dashboard. Every push here needs
+The hosting platform does **not** build on push: a merge to `main` changes nothing on the
+live site until someone triggers *Manual update* from its dashboard. Every push here needs
 that second step.
 
 ## Run it locally
@@ -80,7 +78,7 @@ The version stamped in `info.version` comes from the core's latest git tag, not 
 the tag at build time. Set `APOWERB_VERSION` to override.
 
 Regenerating is not optional after a release that adds or removes routes. Nothing breaks
-when the schema goes stale — the JSON stays valid and Mintlify keeps serving it — so the
+when the schema goes stale — the JSON stays valid and keeps being served — so the
 reference silently drifts. Diff the `paths` to check, never `info.version`.
 
 ## Known gaps
@@ -89,7 +87,7 @@ reference silently drifts. Diff the `paths` to check, never `info.version`.
   product's blue (`#0A1E72`). Replace it with the real brand asset when there is one.
 - **No screenshots yet.** Guides that describe UI flows ("connect Google from the
   interface") would read better with images.
-- **No search analytics, no versioning.** Both are Mintlify features, still to enable.
+- **No search analytics, no versioning.** Both are platform features, still to enable.
 
 ## Conventions
 
