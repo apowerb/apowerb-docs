@@ -7,28 +7,41 @@ The fastest way to see apowerb running is the
 [`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) stack: Postgres, the
 API and the interface, wired together by a single `docker compose up`.
 
-## 1. Clone the three repositories
+## 1. Clone the hosting repository
 
-They are expected to sit side by side — the compose file builds the API and the
-interface from source.
+One repository, not three: the compose file pulls **published images** from
+Docker Hub, pinned to a pair that was tested together. Nothing is built locally.
 
 ```bash
-git clone https://github.com/apowerb/apowerb.git
-git clone https://github.com/apowerb/apowerb-ui.git
 git clone https://github.com/apowerb/apowerb-hosting.git
+cd apowerb-hosting
 ```
 
 ## 2. Generate secrets and start
 
 ```bash
-cd apowerb-hosting
 cp .env.example .env
 ./scripts/generate-secrets.sh
-docker compose up -d --build
+docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
 ```
 
-`generate-secrets.sh` fills `ENCRYPT_KEY`. It never overwrites a
-value that is already set — see [Secrets](/deployment/secrets) for why that matters.
+<Warning>
+  Name the file. There **is** a `docker-compose.yml` at the root of that
+  repository, and it is not this one: it targets the Hostman App Platform, ships
+  no Postgres, and refuses to start without a managed database. A bare
+  `docker compose up` in that folder picks the wrong one.
+</Warning>
+
+`generate-secrets.sh` fills `DB_PASSWORD`, `ENCRYPT_KEY` and the service tokens
+with random values. It never overwrites a value that is already set — see
+[Secrets](/deployment/secrets) for why that matters.
+
+**There is nothing else to fill in.** The database runs inside the stack, and
+every credential the template ships is empty on purpose — a value committed to a
+public repository is not a secret. What you do not get for free is a model: add
+your own key from the interface, or declare a shared one in `.env`
+(`DEFAULT_LLM_MODEL` and `DEFAULT_LLM_API_KEY`). Until then the stack runs and
+the model simply does not appear in the list.
 
 <Frame caption="The dashboard once the stack is up: agents, integrations, schedules and the shared-model credit.">
   <img src="/images/home.jpg" alt="apowerb dashboard showing agent, integration and schedule counters" />
@@ -74,10 +87,17 @@ curl -X POST http://localhost:8000/api/agents \
 
 Then run it — see [Sessions and runs](/concepts/sessions-and-runs).
 
-## Not shipped yet
+## Other ways to deploy
 
-- **Helm chart and Kubernetes manifests.** The Docker Compose path is tested
-  end to end; the Kubernetes equivalent is not, so it is not published.
-- **Published container images.** The compose file builds from source. Once
-  `apowerb/*` images are published, the `build:` blocks become `image:` blocks and
-  the source repositories are no longer needed.
+The Compose path above is the one tested end to end, and the shortest. Three
+others live in the same repository:
+
+- **[Helm chart](/deployment/helmchart)**, published on Docker Hub as an OCI
+  artifact.
+- **[Kubernetes manifests](/deployment/kubernetes)**, static and applied as they
+  are.
+- **[Traefik overlay](/deployment/dockercompose)**, for a single VM behind
+  HTTPS.
+
+Container images are published too — the Compose file pulls them rather than
+building anything locally.

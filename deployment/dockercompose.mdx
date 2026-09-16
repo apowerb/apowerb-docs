@@ -19,15 +19,21 @@ gives them a database.
 
 See the [GitHub repository](https://github.com/apowerb/apowerb-hosting) for full configuration details and scripts.
 
-## Images build from source
+## Images are pulled, not built
 
-The compose file builds the API and interface from the sibling clones. No system
-packages are installed in the images: `psycopg2-binary`, `asyncpg` and `cryptography`
-arrive as prebuilt wheels, and the health probes are written in Python and Node rather
-than shelling out to `curl`. The build therefore depends on no Debian mirror.
+The compose file references **published images**, pinned to explicit versions —
+there is no `build:` block and no sibling clone to fetch.
 
-Once `apowerb/*` images are published to a registry, the `build:` blocks become
-`image:` blocks and the source clones are no longer required.
+The pinning is deliberate. A moving tag such as `latest` promises nothing about
+the API and the interface having been tested together; the pair declared in the
+file was proven together — sign-up, sign-in, an agent created and read back.
+Override **both** tags when you move, never one alone: the frontend and the
+backend cap each other in both directions.
+
+No system packages are installed in the images: `psycopg2-binary`, `asyncpg` and
+`cryptography` arrive as prebuilt wheels, and the health probes are written in
+Python and Node rather than shelling out to `curl`. The build therefore depends
+on no Debian mirror.
 
 ## Published assets
 

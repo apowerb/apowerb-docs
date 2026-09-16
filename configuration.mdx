@@ -62,15 +62,25 @@ capability, and the sidebar badge counts what is still missing.
 
 ## Required
 
+Five settings, and the server refuses to boot without them — the list is
+`RUNTIME_REQUIRED_FIELDS` in `configs/settings.py`, which the boot check reads.
+
 | Variable | Description |
 | --- | --- |
 | `DB_HOST` | PostgreSQL host |
-| `DB_PORT` | Port (default `5432`) |
 | `DB_NAME` | Database name |
 | `DB_USER` | Database user |
 | `DB_PASSWORD` | Database password |
-| `DB_SCHEMA` | Schema (default `public`) |
 | `ENCRYPT_KEY` | Fernet key used for encryption at rest **and** JWT signing. Must be a urlsafe-base64 32-byte key — `Fernet.generate_key()` |
+
+<Note>
+  On the [Quickstart](/quickstart) path, none of these are yours to fill in: the
+  Compose stack runs its own Postgres and `generate-secrets.sh` writes the key.
+  This page is for an installation that brings its own database.
+</Note>
+
+Two neighbours in the same block are **not** required, each carrying a default:
+`DB_PORT` (`5432`) and `DB_SCHEMA` (`public`).
 
 <Note>
   `.env.example` may still carry `TEST_TOKEN`. It is **not required**: the only code
