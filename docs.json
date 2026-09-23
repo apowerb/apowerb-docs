@@ -137,6 +137,7 @@
             "group": "Automation",
             "icon": "webhook",
             "pages": [
+              "guides/workflows",
               "guides/webhooks",
               "guides/orchestrator"
             ]

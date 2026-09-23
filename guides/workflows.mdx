@@ -1,0 +1,327 @@
+---
+title: "Workflows"
+description: "Chain agents, tools and logic in a visual graph, run it on demand or from a trigger."
+---
+
+A workflow is a graph of typed **nodes** joined by **edges**. The Workflow Studio
+(`/workflows` in the app) draws it; the backend validates it, compiles it to a Google ADK
+`Workflow` and runs it, streaming one event per node.
+
+No user code runs inside a workflow: routing rules and `{{...}}` references are evaluated
+by the engine itself.
+
+## In the Studio
+
+1. **New workflow** — start from scratch (a manual trigger) or from the
+   *Tool → Router → Agents* template, and give it a name.
+2. Drag nodes from the palette, or click one to add it. Link them; on a routing node,
+   pick the route of each edge — an edge without a route is drawn red.
+3. Select a node to configure it. Every text field offers the upstream nodes as chips:
+   one click inserts the right `{{...}}` reference.
+4. **Test** opens the run panel: enter a payload (JSON, text or form), **Run**, and follow
+   each node live — status, duration, route taken, output. **Replay** steps through the
+   last run on the canvas.
+5. **Publish** once the validation badge reads *Graph valid*. This arms the trigger.
+
+Changes are saved automatically. **Versions** lists every revision and restores any of
+them.
+
+### Import and export a JSON file
+
+**Export** in the Studio downloads the workflow as a JSON file named after it:
+
+```json
+{
+  "name": "Order review",
+  "description": "Reviews large orders before approval",
+  "graph": { "version": 1, "nodes": [...], "edges": [...] }
+}
+```
+
+To import one, choose **New workflow → Import a JSON file**. The file's name and description
+fill the empty fields, and **Create** stays disabled until the file is read. Two shapes
+are accepted: the file above, or a bare graph `{version, nodes, edges}` — the body the
+[Definitions API](#definitions-api) stores. A file without `nodes` and `edges` is refused.
+
+An imported workflow always starts as a `draft`. The file carries no trigger URL or HMAC
+secret: publishing the copy issues new ones. Agent, tool and workflow ids are kept as
+they are: in a graph from another account, point them at your own — an agent that is not
+yours stops the run with `agent_not_found`.
+
+## Lifecycle of a workflow
+
+| Status | Can be saved with errors | Runs manually | Trigger armed |
+| --- | --- | --- | --- |
+| `draft` | Yes — the editor lists the errors | Only once valid | No |
+| `published` | No — publishing requires a valid graph | Yes | Yes |
+
+Every save creates a revision (`edit`, `publish`, `unpublish`, `restore`). Restoring a
+revision always puts the workflow back to `draft`. Automatic triggers only ever run the
+**published** version, on behalf of the workflow owner.
+
+## Nodes
+
+| Palette label | `type` | Required `config` | Output |
+| --- | --- | --- | --- |
+| Trigger | `trigger` | `kind` (see [Triggers](#triggers)) | The run payload |
+| Agent | `agent` | `agent_id`; optional `input` | The agent answer — text, or JSON when the answer parses as JSON |
+| AI Classifier | `classifier` | `agent_id`, `routes` (≥ 2 `{route, description}`) | Its input, passed through on the chosen route |
+| Extract | `extract` | `agent_id`, `fields` (1–30 `{name, type}`); optional `input` | An object with exactly the declared fields |
+| RAG | `rag` | `agent_id`, `query`; `top_k` 1–20 (default 5) | `{query, passages}` from the agent's knowledge bases |
+| Tool | `tool` | `tool`; optional `args` | The tool result |
+| HTTP request | `http` | `method` (GET, POST, PUT, PATCH, DELETE), `url`; optional `headers`, `body`, `timeout_s` 1–30 (default 15) | `{status, headers, body}` |
+| Notification | `notification` | `channel` (`email`, `app`, `teams`); `subject` for email and Teams; `to` (1–10 addresses) for email only; `body` | `{channel, sent}` |
+| Convert | `convert` | `to`: `text`, `json`, `number`, `boolean`, `list`, `csv`, `date`; optional `input` | The converted value |
+| Set | `set` | `fields`: list of `{key, value}` | An object with those keys |
+| Router | `router` | `rules` (`{field, op, value, route}`); optional `default_route` | Its input, on the first matching route |
+| Condition | `condition` | `rules`; `match`: `all` (default) or `any` | Its input, on route `true` or `false` |
+| Merge | `merge` | — | `{<source node id>: <its output>}` for every incoming edge |
+| Loop | `loop` | `mode` (`foreach` + `items`, or `until` + `until`), `max_iterations` 1–100, `body` | `foreach`: list of body outputs; `until`: last body output |
+| Try | `try` | `body`; `retries` 0–3, `retry_delay_ms` 0–5000 | Route `ok` with the body output, or route `error` with `{code, detail, params, node}` |
+| Subworkflow | `subworkflow` | `workflow_id`; optional `input` | The other workflow's output |
+| Output | `output` | optional `value` | `value`, or its input when `value` is empty |
+| Human approval | `approval` | — | Not runnable yet: shown as *Soon*, refused at validation |
+
+Rule operators for `router`, `condition` and a loop's `until`: `eq`, `ne`, `gt`, `gte`,
+`lt`, `lte` (numeric), `contains` (case-insensitive text), `in` (value in a list),
+`exists`. A rule whose `field` is empty tests the node's input.
+
+### Structure rules
+
+- Node `id`: a letter, then up to 63 letters, digits, `_` or `-`. Ids are unique.
+- At most **one** trigger per workflow. Without one, the workflow is manual.
+- No cycles: repeat work with a `loop`, not a back edge.
+- Only `router`, `classifier`, `condition` and `try` put a `route` on their outgoing
+  edges, and only a route they declare. `condition` and `try` allow one edge per route.
+- An `output` node ends the flow: it cannot have outgoing edges.
+- A `loop` or `try` body is its own graph with exactly one trigger. A `try` body cannot
+  contain another `try` or a `loop`.
+- A subworkflow cannot call its own workflow; chains stop at depth 3.
+
+### Final output of a run
+
+The run output is the value of the `output` node reached, or, without one, the output of
+the last node reached. A run may end on several nodes — parallel branches from a fan-out,
+or two `output` nodes — and the output is then an object keyed by node id, like a `merge`.
+Only the nodes actually reached appear: the branch a `router`, `classifier`, `condition`
+or `try` did not take contributes nothing.
+
+An `output` node that is reached decides alone: the other branches' last nodes are then
+left out of the result.
+
+A route that is chosen but has no outgoing edge ends the run normally; the output is then
+empty.
+
+## References between nodes
+
+A string in a node's `config` can read the output of an **upstream** node with
+`{{node_id}}` or `{{node_id.path.to.value}}`. Path segments are object keys or list
+indexes (`{{items.0.name}}`).
+
+- **Alone in the field**, the reference keeps the value's type: `"{{trigger.amount}}"`
+  gives the number `1500`, an object stays an object.
+- **Inside text**, it is converted to text: objects and lists become JSON, a missing
+  value becomes an empty string.
+- The referenced node must be an ancestor of the node that reads it, otherwise the graph
+  is refused ("is not upstream, its output does not exist yet").
+
+`{{node_id}}` always works. A path is checked against what the engine guarantees:
+
+| Upstream node | Allowed paths |
+| --- | --- |
+| `merge` | The ids of its source nodes |
+| `set`, `extract` | The declared keys / field names |
+| `rag` | `query`, `passages` |
+| `http` | `status`, `headers`, `body` |
+| `notification` | `channel`, `sent` |
+| `convert` to text, number, boolean or date | None — use `{{node_id}}` |
+| `router`, `classifier` | Anything except `.route`: the chosen route is never stored |
+| `trigger`, `agent`, `tool`, `loop` | Accepted at validation, checked at run time |
+
+A path that crosses a plain value at run time (for example `{{agent1.amount}}` when the
+agent answered with text) stops the run with `template_ref_invalid` instead of silently
+producing nothing.
+
+Inside a loop body, the body's trigger receives `{item, index, previous}` — `previous` is
+the previous iteration's output, or the loop input on the first turn. An `until`
+condition reads `{{iteration.output...}}` and `{{iteration.index}}` only.
+
+## Example
+
+A webhook receives an order; orders above 1,000 are reviewed by an agent.
+
+```json
+{
+  "version": 1,
+  "nodes": [
+    { "id": "trigger", "type": "trigger", "config": { "kind": "webhook" } },
+    { "id": "order", "type": "set", "config": { "fields": [
+      { "key": "customer", "value": "{{trigger.customer}}" },
+      { "key": "amount", "value": "{{trigger.amount}}" }
+    ] } },
+    { "id": "big", "type": "condition", "config": {
+      "rules": [{ "field": "{{order.amount}}", "op": "gt", "value": 1000 }]
+    } },
+    { "id": "review", "type": "agent", "config": {
+      "agent_id": "AGENT_ID",
+      "input": "Review the order from {{order.customer}} for {{order.amount}} EUR"
+    } },
+    { "id": "done", "type": "output", "config": { "value": "{{review}}" } },
+    { "id": "skip", "type": "output", "config": { "value": "auto-approved" } }
+  ],
+  "edges": [
+    { "source": "trigger", "target": "order" },
+    { "source": "order", "target": "big" },
+    { "source": "big", "target": "review", "route": "true" },
+    { "source": "big", "target": "skip", "route": "false" },
+    { "source": "review", "target": "done" }
+  ]
+}
+```
+
+`AGENT_ID` is the id of one of your [agents](/concepts/agents).
+With the payload `{"customer": "ACME", "amount": 1500}`, `order.amount` stays the number
+`1500`, the condition takes the `true` route and the agent receives
+`Review the order from ACME for 1500 EUR`.
+
+## Triggers
+
+The trigger node's `config.kind` decides how a published workflow starts. The payload is
+what `{{trigger...}}` reads.
+
+| `kind` | Configuration | Payload |
+| --- | --- | --- |
+| `manual` | — | The body sent to `/run` (Studio: the payload editor) |
+| `webhook` | `hmac` (bool) | The JSON body; a non-object body arrives as `{"body": ...}` |
+| `schedule` | `cron` (5 fields, at most every 5 min) **or** `at` (ISO date, future); `timezone` (default `Europe/Paris`) | `{"scheduled_at": "<ISO date>"}` |
+| `email` | `provider` (`outlook`, `gmail`); optional `from_filter` (address or domain), `subject_filter` | `{from, to, subject, body, received_at, attachments}` — attachment metadata only |
+| `file` | `provider` (`onedrive`, `google_drive`), `folder_id`, `folder_label`, `interval_min` 5–1440 (default 15) | `{id, name, path, url, size, modified_at}` for each new file |
+| `form` | `title`, `fields` (`{name, label, type}`: text, textarea, number, boolean, select, date), `access` (`authenticated`, `public`); optional `description` | The validated form values |
+| `agent_tool` | `tool_name` (`^[a-z][a-z0-9_]{2,40}$`, unique per owner), `description`, `input_schema` (`{name, type}`) | The arguments the calling agent passed |
+| `workflow_done` | `workflow_id` (another of your workflows), `on`: `success`, `error` or `any` | `{workflow_id, run_id, status, output, error}` |
+
+Email and file triggers use the account connected under
+[Integrations](/guides/integrations/overview); without it the trigger stays inactive
+(`integration_missing`). The first scan of a watched folder only records the files
+already there; later scans start one run per new or modified file.
+
+A schedule tick is skipped while the previous scheduled run is still running.
+
+An `agent_tool` workflow becomes a tool named `workflow:<tool_name>` that agents can call.
+The call waits for the run (120 s at most) and returns `{run_id, output}`, or an `error`.
+Workflows that call each other through `agent_tool` or `workflow_done` stop at a chain of
+5, and never loop back to a workflow already in the chain.
+
+### Webhook and form URLs
+
+Publishing a webhook or form workflow issues a secret URL, shown in the Studio and by
+`GET /api/workflows/{workflow_id}/triggers`:
+
+- webhook: `POST /api/hooks/workflows/{token}` — answers `202 {"run_id": "..."}`;
+- form: `/forms/{token}` in the app, submitted to `POST /api/hooks/forms/{token}`.
+
+`POST /api/workflows/{workflow_id}/triggers/rotate` issues a new token (the old URL stops
+working). With `hmac: true`, the HMAC secret is shown **only** when it is generated or
+rotated; each call must then carry `X-Apowerb-Signature: sha256=<hex>`, the HMAC-SHA256 of
+the raw body with that secret.
+
+```bash
+BODY='{"customer":"ACME","amount":1500}'
+SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$HMAC_SECRET" | cut -d' ' -f2)
+curl -X POST "$WEBHOOK_URL" -H "Content-Type: application/json" \
+  -H "X-Apowerb-Signature: sha256=$SIG" -d "$BODY"
+```
+
+An unknown token or an unpublished workflow answers `404`, a bad signature `401`, a body
+over 256 KiB `413`, and more than 60 calls a minute per workflow `429`. A public form
+accepts 10 submissions a minute per visitor; fields that the form does not declare are
+dropped.
+
+## Running and following a run
+
+`POST /api/workflows/defs/{workflow_id}/run` with `{"payload": ...}` runs the saved
+version and streams Server-Sent Events:
+
+| Event | Fields |
+| --- | --- |
+| `run_started` | `wid` — the run id |
+| `node_start` | `node_id`, `type` |
+| `node_complete` | `node_id`, `output`, `duration_ms` |
+| `route` | `node_id`, `route` |
+| `node_error` | `node_id`, `code`, `detail`, `params` |
+| `loop_capped` | `node_id`, `max_iterations`, `remaining` — the items a `foreach` left out, `null` for an `until` loop |
+| `done` / `error` / `cancelled` | Exactly one, last. `done` carries `output`; `error` carries `code` and `detail` |
+
+Nodes run one at a time, in dependency order: branches after a fan-out are correct but
+serialized. Each node output is capped at 1 MiB (`node_output_too_large`); HTTP responses
+too. Stop a run with `POST /api/workflows/{wid}/cancel`, `wid` being the run id carried by
+`run_started`: the current node finishes, no further node starts.
+
+Runs are kept with a status — `running`, `success`, `error`, `cancelled` — and listed
+newest first by `GET /api/workflows/runs`; each entry carries its trigger, the cause of its
+failure and `input_available`, which tells whether its input is still on disk and the run can
+therefore be replayed. `GET /api/workflows/runs/{run_id}` returns one run. Per-node outputs
+are only in the event stream, not stored.
+`POST /api/workflows/runs/{run_id}/replay` starts a **new** run from the stored input; a
+successful run needs `?force=true`, since its side effects already happened.
+
+### Error codes
+
+Errors carry a stable `code` and `params` (never the raw exception). The most common:
+
+| Code | Meaning |
+| --- | --- |
+| `invalid_graph` | The graph failed validation; nothing ran. `/run` refuses it with a `422` — `{code, params, message}` — before the stream opens |
+| `template_ref_invalid` | A `{{...}}` path does not exist on that node's output |
+| `no_route` | No router rule matched and there is no `default_route` |
+| `classifier_no_route` | The classifier's answer matched none of its routes |
+| `extract_failed` | The answer was not JSON, or a field is missing or of the wrong type |
+| `convert_failed` | The value cannot be read as the target type |
+| `loop_items_not_list` | A `foreach` loop's `items` is not a list |
+| `http_url_refused` | The URL points to a private or internal address |
+| `http_timeout`, `http_failed`, `http_response_too_large` | The HTTP request did not complete |
+| `subworkflow_not_found`, `subworkflow_cycle`, `subworkflow_too_deep` | The called workflow is missing, calls back up the chain, or nests deeper than 3 |
+| `node_output_too_large` | A node produced more than 1 MiB |
+| `workflow_error` | Any other explained failure; read `detail` |
+| `internal` | Unexpected failure; `ref` links to the server log |
+
+## Security notes
+
+- The `http` node refuses private and internal addresses and sets `Host` itself. A
+  `4xx` or `5xx` answer does not fail the node: test `{{node.status}}` downstream.
+  `Authorization`, `Proxy-Authorization`, `Cookie` and `X-API-Key` headers cannot be
+  written in a graph, since anyone who reads or exports it would see them; authenticated
+  HTTP calls are not available yet.
+- Notifications are limited to 30 sends an hour per owner, all channels together. `app`
+  goes to the workflow owner, `teams` to the owner's Teams webhook.
+- A subworkflow or `workflow_done` source must belong to the same owner; other owners'
+  workflows answer as not found.
+
+## Definitions API
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/workflows/defs` | List your workflows |
+| POST | `/api/workflows/defs` | Create — `{name, description?, graph?}` |
+| POST | `/api/workflows/defs/validate` | Check a graph without saving — `{valid, errors}`, plus `codes` (`{code, params}`) when the refusal carries one, such as `single_trigger` |
+| GET | `/api/workflows/defs/{id}` | One workflow, with its `validation` report |
+| PUT | `/api/workflows/defs/{id}` | Update — `{expected_version, name?, description?, graph?, status?}`; `409` if someone saved first |
+| DELETE | `/api/workflows/defs/{id}` | Delete, with its revisions and trigger |
+| POST | `/api/workflows/defs/{id}/duplicate` | Copy as a new draft |
+| GET | `/api/workflows/defs/{id}/revisions` | Revision history |
+| POST | `/api/workflows/defs/{id}/revisions/{revision_id}/restore` | Restore as draft |
+| POST | `/api/workflows/defs/{id}/run` | Run and stream events |
+| GET | `/api/workflows/tools/schema?tool=` | Argument schema of a tool, for the `tool` node |
+
+### Runs and triggers
+
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| GET | `/api/workflows/runs` | Your runs, newest first — `limit` (default 50) |
+| GET | `/api/workflows/runs/{run_id}` | One run |
+| POST | `/api/workflows/runs/{run_id}/replay` | Replay as a new run — `?force=true` for a successful one |
+| POST | `/api/workflows/{wid}/cancel` | Stop a live run — `204`, or `404` once it has ended |
+| GET | `/api/workflows/{workflow_id}/triggers` | Trigger state and secret URL |
+| POST | `/api/workflows/{workflow_id}/triggers/rotate` | New token, and a new HMAC secret |
+
+All endpoints require authentication and only see the caller's workflows.
