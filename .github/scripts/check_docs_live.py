@@ -56,7 +56,21 @@ def visible_text(raw: str) -> str:
     """Le texte qu'un lecteur voit, balises et scripts retires."""
     out = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", raw)
     out = re.sub(r"(?s)<[^>]+>", " ", out)
-    return re.sub(r"\s+", " ", html_mod.unescape(out)).strip()
+    return canonical(html_mod.unescape(out))
+
+
+def canonical(text: str) -> str:
+    """Les blancs que le retrait des balises glisse autour de la ponctuation.
+
+    `<code>x</code>, y` devient `x , y` sur la page quand le markdown donne
+    `x, y` : le temoin de `guides/workflows` est reste introuvable pour ce
+    seul espace (faux rouge du 23/09, e4c5e02). On retire donc, des deux
+    cotes, le blanc avant une ponctuation fermante et apres une ouvrante --
+    et rien d'autre : un mot ou une virgule qui differe fait toujours echouer.
+    """
+    s = re.sub(r"\s+", " ", text).strip()
+    s = re.sub(r" ([,.;:!?)\]])", r"\1", s)
+    return re.sub(r"([(\[]) ", r"\1", s)
 
 
 def prose(line: str) -> str:
@@ -72,8 +86,7 @@ def prose(line: str) -> str:
     s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)   # liens : on garde le texte
     s = re.sub(r"<[^>]+>", " ", s)                    # composants MDX
     s = s.replace("`", "").replace("**", "").replace("*", "")
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    return canonical(s)
 
 
 def body_lines(text: str) -> list[str]:
