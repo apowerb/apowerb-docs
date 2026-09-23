@@ -12,6 +12,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test the docs-live checker
+        run: python3 -m unittest discover -s .github/scripts
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
