@@ -26,6 +26,59 @@ by the engine itself.
 Changes are saved automatically. **Versions** lists every revision and restores any of
 them.
 
+### Next-step suggestions
+
+Select a node and the canvas lists, under **Next step**, up to three node types that
+usually come after it, the most likely first. Click one: the node is added, linked, and
+its main field already reads the node it hangs off — `{{trigger1}}` in an Agent's
+`input`, an Output's `value` or a Notification's `body`. Nothing is published.
+
+- While the workflow has no Output, Output comes first whenever it is one of the options.
+- On a routing node (router, classifier, condition, try), the suggestion fills the first
+  declared branch that has no edge yet, one branch at a time.
+- Nothing is suggested after an Output, or after a node that is already linked.
+
+These suggestions follow fixed rules: they are instant and cost nothing.
+
+#### Suggest with AI
+
+When the deployment turns it on, **Suggest with AI** under the list asks the shared model
+for up to two complete nodes, configured from the workflow's name, description and nodes.
+The model is only called when you click. Its proposals, marked ✨, come first, and each
+one replaces the rule suggestion of the same type. Hover one to read why it is proposed.
+The label and the reason are written in the language of the workflow's name.
+
+Every proposal is checked before you see it, and dropped rather than repaired:
+
+- it must pass the checks a node of a saved graph passes;
+- it may only use one of your agents, and only reference nodes upstream of it;
+- the branch it is wired to is computed by the server, never chosen by the model.
+
+The model can propose `agent`, `classifier`, `extract`, `rag`, `router`, `condition`,
+`convert`, `set`, `notification` (channel `app` only) and `output`. Without any agent
+on your account, the four types that need one are not offered at all. It never proposes
+a trigger, a tool, an HTTP request, an approval or a loop, try, merge or subworkflow node.
+
+What reaches the model is the **structure** of the graph: node types, ids and labels,
+branch names, field names (the trigger's sample payload, Extract and Set nodes), a Tool
+node's tool and an HTTP node's method, plus your agents' ids, names and descriptions.
+Sample values, templates, URLs, headers and recipients are never sent.
+
+| On screen | Meaning |
+| --- | --- |
+| *AI unavailable — the usual suggestions stay.* | The model did not answer in time or answered something unusable. **Retry with AI** asks again. |
+| *AI quota reached for now — the usual suggestions stay.* | The [shared model's cap](/configuration/default-llm) is reached; suggestions count against it like runs. |
+| *No other idea from the AI.* | The model had nothing valid to add. |
+
+**Self-hosting.** The button only shows when both the shared model is configured
+(`DEFAULT_LLM_MODEL` and `DEFAULT_LLM_API_KEY`) and the feature is on:
+
+| Variable | Default | |
+| --- | --- | --- |
+| `WORKFLOW_SUGGEST_ENABLED` | `false` | Turns AI suggestions on |
+| `WORKFLOW_SUGGEST_MODEL` | empty | A faster or cheaper model, served by the same key and endpoint as `DEFAULT_LLM_MODEL`; empty uses `DEFAULT_LLM_MODEL` |
+| `WORKFLOW_SUGGEST_TIMEOUT_S` | `4` | Seconds the editor waits before keeping its rule suggestions |
+
 ### Import and export a JSON file
 
 **Export** in the Studio downloads the workflow as a JSON file named after it:
@@ -304,6 +357,7 @@ Errors carry a stable `code` and `params` (never the raw exception). The most co
 | GET | `/api/workflows/defs` | List your workflows |
 | POST | `/api/workflows/defs` | Create — `{name, description?, graph?}` |
 | POST | `/api/workflows/defs/validate` | Check a graph without saving — `{valid, errors}`, plus `codes` (`{code, params}`) when the refusal carries one, such as `single_trigger` |
+| POST | `/api/workflows/defs/suggest-next` | AI suggestions after a node of an unsaved graph — `{graph, node_id, name?, description?}` → `{route, suggestions: [{type, label, config, reason}]}`; `404` when off, `422` for an unknown node, `402` over the cap, `503` when the model does not answer usefully |
 | GET | `/api/workflows/defs/{id}` | One workflow, with its `validation` report |
 | PUT | `/api/workflows/defs/{id}` | Update — `{expected_version, name?, description?, graph?, status?}`; `409` if someone saved first |
 | DELETE | `/api/workflows/defs/{id}` | Delete, with its revisions and trigger |
