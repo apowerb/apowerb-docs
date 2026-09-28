@@ -103,15 +103,16 @@ hold a key-value block whose content is updated in place.
 | POST | `/api/v1/dashboards/{dashboard_id}/publish` | Makes it reachable by slug |
 | POST | `/api/v1/dashboards/{dashboard_id}/unpublish` | Takes it back private |
 | GET | `/api/v1/dashboards/shared` | Published dashboards shared with the caller |
-| GET | `/api/v1/dashboards/public/{slug}` | The published dashboard, **no authentication** |
-| GET | `/api/v1/public/charts/{chart_id}/data` | The chart data behind it, **no authentication** |
+| GET | `/api/v1/dashboards/public/{slug}` | The published dashboard, for a logged-in viewer it admits |
+| GET | `/api/v1/public/charts/{chart_id}/data` | The data of a chart shown on such a dashboard, same rule |
 
-<Warning>
-  Publishing is what the word says. `public/{slug}` and `public/charts/{id}/data` answer
-  without a token, so anyone holding the slug reads the figures. Publish a dashboard only
-  when its data is meant to leave the workspace, and unpublish rather than relying on the
-  slug staying secret.
-</Warning>
+<Note>
+  Both routes require a logged-in user. A published dashboard with `public` visibility is
+  readable by any logged-in user, one with `organization` visibility only by users of the
+  owner's email domain. Chart data answers only the chart's owner or a viewer of a published
+  dashboard that displays the chart; any other chart is a 404. The chart's source runs with
+  its owner's credentials, never the viewer's. Unpublish to withdraw access.
+</Note>
 
 ## Letting an agent refresh the figures
 
