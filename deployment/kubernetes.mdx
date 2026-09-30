@@ -176,8 +176,9 @@ kubectl get clusterissuer
 
 ## 5. Secrets
 
-Five values. Two of them are mandatory — the chart refuses to install without
-the th2pulse tokens, because that service does not start without them.
+Five values. Three of them are mandatory — the chart refuses to install
+without `postgres.password` (no default, on purpose) and the two th2pulse
+tokens, because that service does not start without them.
 
 ```bash
 umask 077

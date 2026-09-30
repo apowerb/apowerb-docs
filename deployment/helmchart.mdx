@@ -17,9 +17,11 @@ the backend writes to disk.
 
 ## Install
 
-Three secrets have to exist first. The chart **refuses to install** without the
-two th2pulse tokens — that service does not start without them, so failing at
-install time is the honest moment to say it.
+Five values have to exist first. The chart **refuses to install** without three
+of them: `postgres.password`, which has no default on purpose — a password
+shipped in a public repository is not one — and the two th2pulse tokens, since
+that service does not start without them. Failing at install time is the
+honest moment to say it.
 
 ```bash
 helm upgrade --install apowerb ./helm/apowerb-chart \
@@ -41,8 +43,14 @@ helm upgrade --install apowerb ./helm/apowerb-chart \
 ## From the published chart
 
 ```bash
-helm install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21
+helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
+  --namespace apowerb --create-namespace \
+  --values values-secrets.yaml
 ```
+
+`values-secrets.yaml` holds the same five values as above — the
+[Kubernetes guide](/deployment/kubernetes#5-secrets) writes it in one step.
+Without it the install stops on `postgres.password est vide`.
 
 <Note>
   The chart moved to its own Docker Hub repository. It used to be pushed to
@@ -53,10 +61,11 @@ helm install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 
   from `0.4.1` on lives at `apowerb/apowerb-chart`.
 </Note>
 
-<Warning>
-  This chart has been validated by `helm lint` and `kubeconform`, and installed
-  on no cluster yet. Treat the first `helm install` as the real test.
-</Warning>
+<Note>
+  First real install: OVH Managed Kubernetes (3 nodes, Cinder ext4 volumes) on
+  29/09/26. It found two blockers — PostgreSQL failing on the volume's
+  `lost+found`, and upgrades stuck on `Multi-Attach` — both fixed in `0.4.21`.
+</Note>
 
 ## Storage
 
@@ -95,10 +104,11 @@ helm upgrade --install apowerb ./helm/apowerb-chart \
   --set th2etl.enabled=false \
   --set th2pulse.enabled=false \
   --set otelCollector.enabled=false \
-  --set backend.env.encryptKey="$(openssl rand -base64 32)"
+  --set backend.env.encryptKey="$(openssl rand -base64 32)" \
+  --set postgres.password="$(openssl rand -hex 16)"
 ```
 
-Seven objects instead of sixteen. The interface then reports those features as
+Eight objects instead of sixteen. The interface then reports those features as
 not configured instead of failing on them — see
 [What needs configuring](/configuration).
 
@@ -110,6 +120,7 @@ no public IP billed for it.
 
 ```bash
 helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
+  --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
   --set ingress.host=apowerb.example.com \
