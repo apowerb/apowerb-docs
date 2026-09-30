@@ -17,10 +17,10 @@ the backend writes to disk.
 
 ## Install
 
-Five values have to exist first. The chart **refuses to install** without three
-of them: `postgres.password`, which has no default on purpose — a password
-shipped in a public repository is not one — and the two th2pulse tokens, since
-that service does not start without them. Failing at install time is the
+Five values have to exist first. The chart **refuses to install** without four
+of them: `postgres.password` and `backend.env.encryptKey`, which have no default
+on purpose — a secret shipped in a public repository is not one — and the two
+th2pulse tokens. The backend and th2pulse do not start without them. Failing at install time is the
 honest moment to say it.
 
 ```bash
@@ -43,7 +43,7 @@ helm upgrade --install apowerb ./helm/apowerb-chart \
 ## From the published chart
 
 ```bash
-helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
+helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.22 \
   --namespace apowerb --create-namespace \
   --values values-secrets.yaml
 ```
@@ -51,6 +51,15 @@ helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart 
 `values-secrets.yaml` holds the same five values as above — the
 [Kubernetes guide](/deployment/kubernetes#5-secrets) writes it in one step.
 Without it the install stops on `postgres.password est vide`.
+
+From `0.4.22` the published chart is signed with cosign, keyless, by the
+publishing workflow. To check that a chart comes from `apowerb/apowerb-hosting`:
+
+```bash
+cosign verify registry-1.docker.io/apowerb/apowerb-chart:0.4.22 \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/apowerb/apowerb-hosting/\.github/workflows/publish-dockerhub-helm\.yml@'
+```
 
 <Note>
   The chart moved to its own Docker Hub repository. It used to be pushed to
@@ -119,7 +128,7 @@ Service is a `ClusterIP`, not a `LoadBalancer` — no provider load balancer, an
 no public IP billed for it.
 
 ```bash
-helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
+helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.22 \
   --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
