@@ -211,7 +211,7 @@ to know whether the stack runs.
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.20 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
   --namespace apowerb --create-namespace \
   --values values-secrets.yaml --timeout 10m
 ```
@@ -271,7 +271,7 @@ resolve, then upgrade with the Ingress — with the **staging** issuer first:
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.20 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21 \
   --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
@@ -350,6 +350,26 @@ helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
 helm -n apowerb list
 ```
 
+**Upgrading an existing install to 0.4.21: check where the database lives
+first.** Since 0.4.21, PostgreSQL writes to `/var/lib/postgresql/data/pgdata`,
+a subdirectory of its volume, instead of the volume's root: on ext4 volumes
+(OVH Cinder and most cloud block disks) the root holds a `lost+found` that
+made `initdb` fail. An install that already ran — so on a volume without
+`lost+found` (k3s `local-path`, kind, NFS) — keeps its database at the root.
+After the upgrade PostgreSQL would find `pgdata/` empty and create a fresh
+database: the old data stays on the volume, but out of sight.
+
+```bash
+kubectl -n apowerb exec apowerb-postgres-0 -- ls /var/lib/postgresql/data
+```
+
+If `PG_VERSION` shows at the root, back up with `pg_dumpall` before upgrading,
+then restore into the new database. A fresh install is not affected.
+
+From 0.4.21 the backend also uses `strategy: Recreate` (its volume is
+`ReadWriteOnce`): each upgrade stops the old pod before starting the new one,
+so expect a few seconds of downtime.
+
 Uninstalling leaves the data volume behind, on purpose — it carries
 `helm.sh/resource-policy: keep`:
 
@@ -392,9 +412,11 @@ installing, not after wondering why nothing starts.
 `Connection refused` on port 5432 in the previous container's logs.
 
 **Cause.** They open the database before PostgreSQL accepts connections, exit,
-and are restarted. The chart has no init container waiting on the database.
+and are restarted. Up to chart 0.4.20, nothing waited on the database.
 
-**Remedy.** None needed: Kubernetes recovers, and both reach `Running` within
+**Remedy.** Chart 0.4.21 adds a `wait-for-postgres` init container to the
+backend, th2etl and th2pulse, which removes these restarts. On an older chart,
+none needed: Kubernetes recovers, and both reach `Running` within
 a couple of minutes. Worry only if the count keeps climbing — then read
 `kubectl -n apowerb logs <pod> --previous`, which will name a different cause.
 
@@ -455,7 +477,7 @@ the stack as it was several versions ago.
 **Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
 
 ```bash
-helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.20
+helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.21
 ```
 
 The `name` must read `apowerb-chart`.
