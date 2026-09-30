@@ -50,7 +50,7 @@ helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart 
 
 `values-secrets.yaml` holds the same five values as above — the
 [Kubernetes guide](/deployment/kubernetes#5-secrets) writes it in one step.
-Without it the install stops on `postgres.password est vide`.
+Without it the install stops on `postgres.password is empty`.
 
 From `0.4.22` the published chart is signed with cosign, keyless, by the
 publishing workflow. To check that a chart comes from `apowerb/apowerb-hosting`:
