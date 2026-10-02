@@ -268,7 +268,6 @@
               "deployment/dockercompose",
               "deployment/kubernetes",
               "deployment/helmchart",
-              "deployment/secrets",
               "deployment/virtual-machine",
               "deployment/digitalocean",
               "deployment/azure-app-service",
@@ -340,5 +339,11 @@
       "discord": "https://discord.com/channels/1470717940075597896",
       "website": "https://thaink2.com"
     }
-  }
+  },
+  "redirects": [
+    {
+      "source": "/deployment/secrets",
+      "destination": "/deployment/introduction#secrets"
+    }
+  ]
 }

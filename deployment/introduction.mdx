@@ -14,10 +14,10 @@ from local Docker setups to managed cloud services and Kubernetes.
     The quickest path to bring the full stack up on a single host.
   </Card>
   <Card title="Kubernetes" icon="kubernetes" href="/deployment/kubernetes">
-    Run the same stack in a cluster with declarative manifests.
+    Prepare a cluster with kubectl and plain manifests: storage, ingress, certificates.
   </Card>
   <Card title="Helm chart" icon="helm" href="/deployment/helmchart">
-    Package and customize the deployment with a reusable chart.
+    Install the application on that cluster, configure it and upgrade it.
   </Card>
   <Card title="Single VM / HTTPS" icon="lock" href="/deployment/virtual-machine">
     Expose the stack behind Traefik with TLS on a single VM.
@@ -29,10 +29,27 @@ from local Docker setups to managed cloud services and Kubernetes.
 Choose the operating model that fits your environment:
 
 - [Docker Compose](/deployment/dockercompose): best for local development, labs, and small production installs.
-- [Kubernetes](/deployment/kubernetes): best when you need scaling, rollouts, and cluster-based operations.
-- [Helm chart](/deployment/helmchart): best for repeatable installs on Kubernetes and GitOps workflows.
+- [Kubernetes](/deployment/kubernetes): prepares the cluster — storage class, ingress controller, certificate issuer — with `kubectl` and plain manifests.
+- [Helm chart](/deployment/helmchart): installs and upgrades the application on that cluster; repeatable, and fits GitOps workflows.
 - [Single VM / HTTPS with Traefik](/deployment/virtual-machine): useful for self-hosted environments behind a public endpoint.
-- [Secrets management](/deployment/secrets): keep environment variables, tokens, and credentials outside source control.
+
+## Secrets
+
+Secrets are not a deployment model: every option above needs the same few
+values, and none of them ships with one — a value committed to a public
+repository is not a secret.
+
+- **Docker Compose**: `scripts/generate-secrets.sh` writes random values for
+  `DB_PASSWORD`, `ENCRYPT_KEY` and the service tokens into `.env`. It never
+  overwrites a value that is already set: a new `DB_PASSWORD` would no longer
+  match the existing database volume, and a new `ENCRYPT_KEY` would make every
+  connected integration unreadable.
+- **Helm chart**: pass `postgres.password`, `backend.env.encryptKey` and the
+  service tokens as values; the chart stores them in a Kubernetes `Secret` and
+  refuses to install without the mandatory ones.
+
+Keep `.env` and your values files out of source control, and back up
+`ENCRYPT_KEY` with them.
 
 ## Managed and hosted platforms
 

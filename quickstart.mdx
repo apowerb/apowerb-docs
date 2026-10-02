@@ -51,7 +51,7 @@ docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
 
 `generate-secrets.sh` fills `DB_PASSWORD`, `ENCRYPT_KEY` and the service tokens
 with random values. It never overwrites a value that is already set — see
-[Secrets](/deployment/secrets) for why that matters.
+[Secrets](/deployment/introduction#secrets) for why that matters.
 
 **There is nothing else to fill in.** The database runs inside the stack, and
 every credential the template ships is empty on purpose — a value committed to a
@@ -111,8 +111,8 @@ others live in the same repository:
 
 - **[Helm chart](/deployment/helmchart)**, published on Docker Hub as an OCI
   artifact.
-- **[Kubernetes manifests](/deployment/kubernetes)**, static and applied as they
-  are.
+- **[Kubernetes](/deployment/kubernetes)**, preparing the cluster the chart
+  installs into.
 - **[Traefik overlay](/deployment/dockercompose)**, for a single VM behind
   HTTPS.
 
