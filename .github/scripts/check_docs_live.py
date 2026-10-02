@@ -83,6 +83,9 @@ def prose(line: str) -> str:
     s = line.strip()
     if s.startswith(("<", ">", "|", "#", "---", "import ", "export ")):
         return ""
+    # A list marker renders as a bullet or a number, never as text: keeping
+    # it made the 40c7dc4 witnesses unfindable on an up-to-date page.
+    s = re.sub(r"^(?:[-*+]|\d{1,9}[.)])\s+", "", s)
     s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)   # liens : on garde le texte
     s = re.sub(r"<[^>]+>", " ", s)                    # composants MDX
     s = s.replace("`", "").replace("**", "").replace("*", "")

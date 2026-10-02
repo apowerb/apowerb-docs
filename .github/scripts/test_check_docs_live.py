@@ -31,5 +31,26 @@ class WitnessMatchesRenderedPage(unittest.TestCase):
         self.assertNotIn(prose("Use `x`y"), page)
 
 
+class ListMarkersAreNotRendered(unittest.TestCase):
+    # The `- ` of a list item becomes a bullet, never text: the witness
+    # "- Kubernetes: prepares the cluster" stayed unfindable on a page that
+    # did serve 40c7dc4 (false red of 02/10).
+    def test_bullet_and_numbered_items(self):
+        page = visible_text(
+            "<ul><li>Kubernetes: prepares the cluster</li></ul>")
+        for marker in ("- ", "* ", "+ ", "1. ", "12) ", "  - "):
+            with self.subTest(marker=marker):
+                self.assertIn(
+                    prose(f"{marker}Kubernetes: prepares the cluster"), page)
+
+    def test_link_item(self):
+        page = visible_text('<li><a href="/k">Kubernetes</a>, preparing it</li>')
+        self.assertIn(prose("- [Kubernetes](/k), preparing it"), page)
+
+    def test_dashes_inside_the_sentence_are_kept(self):
+        self.assertEqual(prose("- a - b — c"), "a - b — c")
+        self.assertEqual(prose("1.5 GB of RAM"), "1.5 GB of RAM")
+
+
 if __name__ == "__main__":
     unittest.main()
