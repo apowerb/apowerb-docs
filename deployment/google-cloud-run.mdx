@@ -3,6 +3,30 @@ title: "Google Cloud Run"
 description: "Deploy apowerb to Google Cloud Run."
 ---
 
+## Before you deploy: account, project, billing and API
+
+Cloud Run needs a Google Cloud project with billing enabled. Do this once, in the [Google Cloud console](https://console.cloud.google.com/).
+
+1.  **Sign in.** Open [console.cloud.google.com](https://console.cloud.google.com/) and sign in with your Google account. If you are new to Google Cloud, create a Google Cloud account when prompted.
+2.  **Create or select a project.** Open the [project selector](https://console.cloud.google.com/projectselector2/home/dashboard). To create one, open the [Manage resources](https://console.cloud.google.com/cloud-resource-manager) page, click **Create Project**, fill in **Project name** (4 to 30 characters), then click **Create**. Keep the project selected in the drop-down at the top of the console for the next steps.
+3.  **Check or link billing.** Open the navigation menu (☰) and select **Billing**. If billing is active, the billing **Overview** page opens. If the console says **This project has no billing account**, click **Link a billing account** and choose an active billing account.
+4.  **Enable the Cloud Run Admin API.** Open the [Cloud Run Admin API](https://console.cloud.google.com/apis/library/run.googleapis.com) page of the API Library, check that your project is selected, then click **Enable**. If you push your image to Artifact Registry, enable the [Artifact Registry API](https://console.cloud.google.com/apis/library/artifactregistry.googleapis.com) the same way.
+5.  **Check your roles.** To deploy, your account needs **Cloud Run Admin** (`roles/run.admin`) and **Service Account User** (`roles/iam.serviceAccountUser`) on the project.
+
+The same steps with the `gcloud` CLI:
+
+```bash
+gcloud auth login
+gcloud projects create <project-id>        # or reuse an existing project
+gcloud config set project <project-id>
+gcloud billing projects link <project-id> --billing-account=<billing-account-id>
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com
+```
+
+Sources: Google Cloud documentation, [Cloud Run quickstart](https://docs.cloud.google.com/run/docs/quickstarts/deploy-container), [creating projects](https://docs.cloud.google.com/resource-manager/docs/creating-managing-projects), [verifying billing](https://docs.cloud.google.com/billing/docs/how-to/verify-billing-enabled), [enabling APIs](https://docs.cloud.google.com/apis/docs/getting-started), all last updated on 30 September 2026. Console labels can change; if one differs, the linked page has the current wording.
+
+## Deploy
+
 To deploy apowerb to Google Cloud Run:
 
 1.  Build your Docker container and push it to Google Container Registry or Artifact Registry.
