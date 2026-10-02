@@ -1,18 +1,16 @@
 ---
 title: "Kubernetes, step by step"
-description: "Installing the whole apowerb stack on a cluster, from an empty cluster to a public HTTPS address — and the traps, with their remedies."
+description: "Preparing a cluster for apowerb with kubectl and plain manifests — storage, ingress, certificates — and the traps, with their remedies."
 ---
 
-Every step below was run on a real cluster (k0s v1.36.3, three nodes) before
-being written down. The commands are the ones that worked; the **Traps**
-section at the end lists what went wrong on the way, with the symptom that
-gives each one away.
+This page prepares the **cluster**: everything here is `kubectl` and plain
+manifests, no Helm. The application itself is installed by the
+[Helm chart](/deployment/helmchart), once the cluster passes the checks below.
 
-<Note>
-  Deploying means installing the **Helm chart**, `apowerb-chart`. The static
-  manifests in the repository's `k8s/` folder predate it and describe an
-  incomplete stack — see [Trap 8](#trap-8-the-old-static-manifests).
-</Note>
+Every step was run on a real cluster (k0s v1.36.3, three nodes) before being
+written down. The commands are the ones that worked; the **Traps** section at
+the end lists what went wrong on the way, with the symptom that gives each one
+away.
 
 ## What you need before starting
 
@@ -20,10 +18,9 @@ gives each one away.
 | --- | --- |
 | A Kubernetes cluster | 1.28 or later. Three nodes of 4 vCPU / 8 GB is comfortable for the full stack |
 | `kubectl` | within one minor version of the server |
-| `helm` | 3.8 or later (OCI registry support) |
 | A storage class | **the cluster does not necessarily have one** — [step 2](#2-storage) |
 | An ingress controller | for a public address — [step 3](#3-ingress-controller) |
-| A DNS name | pointed at the ingress load balancer — [step 8](#8-going-public) |
+| A DNS name | pointed at the ingress load balancer |
 
 ## 1. Reach the cluster
 
@@ -174,211 +171,44 @@ kubectl get clusterissuer
   `Ready: False` while nothing reports an error.
 </Warning>
 
-## 5. Secrets
+## 5. HTTPS redirect (Traefik)
 
-Five values. Four of them are mandatory — the chart refuses to install
-without `postgres.password` and `backend.env.encryptKey` (no default, on
-purpose) and the two th2pulse tokens, because the backend and th2pulse do not
-start without them.
-
-```bash
-umask 077
-cat > values-secrets.yaml <<YAML
-backend:
-  env:
-    encryptKey: "$(openssl rand -base64 32)"
-th2etl:
-  apiKey: "$(openssl rand -hex 32)"
-th2pulse:
-  ingestToken: "$(openssl rand -hex 32)"
-  queryToken: "$(openssl rand -hex 32)"
-postgres:
-  password: "$(openssl rand -hex 16)"
-YAML
-chmod 600 values-secrets.yaml
-```
-
-<Warning>
-  Keep this file, out of version control, and pass it to **every** later
-  `helm upgrade`. Without it the Secret is rewritten with empty strings — and
-  a changed `ENCRYPT_KEY` makes every connected integration unreadable, since
-  it is the key their OAuth tokens were encrypted with. See
-  [Trap 4](#trap-4-an-upgrade-that-empties-the-secret).
-</Warning>
-
-## 6. Install
-
-Start without an Ingress: fewer moving parts, and a public name is not needed
-to know whether the stack runs.
+A certificate does not close the clear-text entrance: once the site is public,
+`http://` keeps serving it unless something redirects. With Traefik, that
+something is a Middleware, cluster-side, ready-made in the hosting repository:
 
 ```bash
-helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.23 \
-  --namespace apowerb --create-namespace \
-  --values values-secrets.yaml --timeout 10m
-```
-
-Pulling the images takes a few minutes on a fresh cluster — the backend image
-alone is around 250 MB.
-
-## 7. Check what actually runs
-
-```bash
-kubectl -n apowerb get pods
-kubectl -n apowerb get pvc
-kubectl -n apowerb logs job/apowerb-th2etl-seed
-```
-
-What a healthy install looks like:
-
-- **six pods `Running`**: backend, frontend, postgres, th2etl, th2pulse,
-  otel-collector;
-- **`apowerb-th2etl-seed` `Completed`** — it is a `Job`, so `0/1 Completed` is
-  the success state, not a failure;
-- **two PVCs `Bound`**: the data volume and the database's.
-
-A couple of restarts on `th2etl` and `th2pulse` at first start are expected —
-[Trap 3](#trap-3-th2etl-and-th2pulse-restart-twice).
-
-Then reach the services:
-
-```bash
-kubectl -n apowerb port-forward svc/apowerb-backend 18000:8000 &
-kubectl -n apowerb port-forward svc/apowerb-frontend 13000:3000 &
-curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/health      # 200
-curl -s localhost:18000/api/config                                   # public flags
-curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/api/config/setup  # 401
-curl -s -o /dev/null -w "%{http_code}\n" localhost:13000/            # 200
-```
-
-`401` on `/api/config/setup` is the right answer: authentication comes before
-the checklist. A `404` there would mean the backend image predates it.
-
-These checks go through a port-forward on purpose. The backend is never
-published directly: once the site is public, the frontend proxies `/api/*` to
-it, and nothing else reaches it — `/health` included
-([Trap 12](#trap-12-health-answers-200-in-the-cluster-and-404-on-the-domain)).
-
-<Warning>
-  The checklist reports what is **configured**, never what is **reachable**. A capability can
-  read `configured: true` while the provider refuses every call — see
-  [Trap 10](#trap-10-the-model-provider-refuses-the-clusters-outbound-address). The only proof
-  that a model answers is a real run.
-</Warning>
-
-## 8. Going public
-
-Point an **A record** at the `EXTERNAL-IP` from step 3, wait for it to
-resolve, then upgrade with the Ingress — with the **staging** issuer first:
-
-```bash
-helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.23 \
-  --namespace apowerb --values values-secrets.yaml \
-  --set ingress.enabled=true \
-  --set ingress.className=traefik \
-  --set ingress.host=apowerb.example.com \
-  --set ingress.tlsEnabled=true \
-  --set ingress.annotations."cert-manager\.io/cluster-issuer"=letsencrypt-staging
-```
-
-Nothing else to set for the public address: with an Ingress enabled,
-`publicUrls.appPublicUrl` and `publicUrls.publicBaseUrl` are derived from
-`ingress.host` and `ingress.tlsEnabled`. That one value feeds nine settings in
-the core — the CORS origins and the GitHub, Google and Outlook Mail callbacks —
-so setting them by hand is how they end up disagreeing.
-
-Watch the certificate being issued:
-
-```bash
-kubectl -n apowerb get certificate
-kubectl -n apowerb describe certificate apowerb-tls | tail -20
-```
-
-Once `READY: True` with staging, swap the annotation to `letsencrypt-prod`,
-delete the staging secret so a real certificate is requested, and check the
-site in a browser:
-
-```bash
-kubectl -n apowerb delete secret apowerb-tls
-```
-
-### Close port 80
-
-The certificate does not close the clear-text entrance —
-[Trap 9](#trap-9-https-served-but-http-still-answers). With Traefik, a
-Middleware and one more annotation:
-
-```bash
+kubectl create namespace apowerb      # the Middleware lives in the application's namespace
 kubectl apply -f k8s/traefik/redirect-https.yaml
-helm upgrade ... \
-  --set ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.middlewares"=apowerb-redirect-https@kubernetescrd
+kubectl -n apowerb get middleware redirect-https
 ```
 
-```bash
-curl -sI http://apowerb.example.com/ | head -2     # 308, Location: https://…
-```
+The application's Ingress opts into it with one annotation — see
+[Going public](/deployment/helmchart#4-going-public). With ingress-nginx there
+is nothing to apply: `ssl-redirect` acts as soon as the Ingress has a TLS
+section.
 
-With ingress-nginx there is nothing to do: `ssl-redirect` applies as soon as a
-TLS section exists.
+## The manifests in `k8s/`
 
-## 9. The first administrator
+The hosting repository's `k8s/` folder holds what lives **beside** an
+installation — cluster-wide objects an application chart should not create:
 
-A fresh database has no administrator, and no route creates one. Two settings
-do:
+| Path | What it is |
+| --- | --- |
+| `k8s/cert-manager/cluster-issuer-letsencrypt.yaml` | the staging and production issuers — [step 4](#4-cert-manager-and-an-issuer) |
+| `k8s/traefik/redirect-https.yaml` | the HTTP → HTTPS Middleware — [step 5](#5-https-redirect-traefik) |
 
-```bash
-helm upgrade --install apowerb ... \
-  --set superadmin.email=admin@example.com \
-  --set superadmin.password='<a strong one>'
-```
+`00-namespace.yaml` … `05-ingress.yaml` are older: they predate the chart and
+describe an incomplete stack — no orchestrator, no log store, no collector, no
+data volume, an Ingress on `apowerb.local`. `kubectl apply -f k8s/` installs
+something that *looks* right and is not. Do not use them to install the
+application.
 
-An unknown account with a password is **created** as admin; an existing one is
-**promoted**, and its password is never rewritten. Without a password, an
-unknown account produces nothing — an account nobody can sign into helps
-nobody. So on an installation where people register themselves, set
-`superadmin.email` alone: the person signs up, and the next backend start
-promotes them. Then sign in and open
-**Admin → Configuration**: the screen lists every capability this installation
-has, and the sidebar badge counts what is still missing. That is the shortest
-path to knowing what is left to configure — see
-[What needs configuring](/configuration).
+## Next: install the application
 
-## 10. Upgrading and removing
-
-```bash
-helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
-  --version <new> --namespace apowerb --values values-secrets.yaml
-helm -n apowerb list
-```
-
-**Upgrading an existing install to 0.4.21: check where the database lives
-first.** Since 0.4.21, PostgreSQL writes to `/var/lib/postgresql/data/pgdata`,
-a subdirectory of its volume, instead of the volume's root: on ext4 volumes
-(OVH Cinder and most cloud block disks) the root holds a `lost+found` that
-made `initdb` fail. An install that already ran — so on a volume without
-`lost+found` (k3s `local-path`, kind, NFS) — keeps its database at the root.
-After the upgrade PostgreSQL would find `pgdata/` empty and create a fresh
-database: the old data stays on the volume, but out of sight.
-
-```bash
-kubectl -n apowerb exec apowerb-postgres-0 -- ls /var/lib/postgresql/data
-```
-
-If `PG_VERSION` shows at the root, back up with `pg_dumpall` before upgrading,
-then restore into the new database. A fresh install is not affected.
-
-From 0.4.21 the backend also uses `strategy: Recreate` (its volume is
-`ReadWriteOnce`): each upgrade stops the old pod before starting the new one,
-so expect a few seconds of downtime.
-
-Uninstalling leaves the data volume behind, on purpose — it carries
-`helm.sh/resource-policy: keep`:
-
-```bash
-helm -n apowerb uninstall apowerb
-kubectl -n apowerb get pvc            # apowerb-data is still there
-```
+<Card title="Helm chart" icon="helm" href="/deployment/helmchart">
+  Secrets, install, checks, public address, first administrator, upgrades.
+</Card>
 
 ---
 
@@ -408,34 +238,7 @@ clusters.
 **Remedy.** [Step 2](#2-storage). Check `kubectl get storageclass` **before**
 installing, not after wondering why nothing starts.
 
-### Trap 3: th2etl and th2pulse restart twice
-
-**Symptom.** Right after install, both show `RESTARTS 2`, with
-`Connection refused` on port 5432 in the previous container's logs.
-
-**Cause.** They open the database before PostgreSQL accepts connections, exit,
-and are restarted. Up to chart 0.4.20, nothing waited on the database.
-
-**Remedy.** Chart 0.4.21 adds a `wait-for-postgres` init container to the
-backend, th2etl and th2pulse, which removes these restarts. On an older chart,
-none needed: Kubernetes recovers, and both reach `Running` within
-a couple of minutes. Worry only if the count keeps climbing — then read
-`kubectl -n apowerb logs <pod> --previous`, which will name a different cause.
-
-### Trap 4: an upgrade that empties the Secret
-
-**Symptom.** After a `helm upgrade`, integrations no longer connect and agents
-lose their stored credentials.
-
-**Cause.** `helm upgrade` without `--values values-secrets.yaml` re-renders the
-Secret from the chart's defaults — empty strings. `ENCRYPT_KEY` is what the
-integrations' OAuth tokens were encrypted with; change it and they become
-unreadable.
-
-**Remedy.** Always pass the same values file. Back it up with your other
-secrets — it is not recoverable from the cluster once overwritten.
-
-### Trap 5: a certificate stuck at Ready: False
+### Trap 3: a certificate stuck at Ready: False
 
 **Symptom.** `kubectl get certificate` shows `READY: False` and stays there,
 without an obvious error.
@@ -455,145 +258,3 @@ kubectl -n apowerb get challenge
 ```
 
 The `Challenge` object names the real reason.
-
-### Trap 6: a Service stuck in Pending
-
-**Symptom.** `kubectl get svc` shows `EXTERNAL-IP: <pending>` forever.
-
-**Cause.** `service.frontend.type=LoadBalancer` on a cluster whose provider
-gives no load balancer.
-
-**Remedy.** The chart defaults to `ClusterIP` for exactly this reason. Reach
-the interface through the Ingress, or `kubectl port-forward`.
-
-### Trap 7: pulling the chart from the old address
-
-**Symptom.** `helm install` succeeds and the stack comes up — without th2etl,
-th2pulse, the collector, or the data volume.
-
-**Cause.** The chart used to be published to `apowerb/apowerb`, next to the
-backend **images**, and those old versions are still pullable. A stale command
-line therefore *works*, which is what makes it dangerous: it silently installs
-the stack as it was several versions ago.
-
-**Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
-
-```bash
-helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.23
-```
-
-The `name` must read `apowerb-chart`.
-
-### Trap 11: removing a secret from the values does not remove it from the cluster
-
-**Symptom.** You delete a credential from `values-secrets.yaml`, run `helm upgrade`, and the
-Secret still holds it.
-
-**Cause.** The chart writes a credential only when it is non-empty
-(`{{- if .Values.defaultLlm.apiKey }}`). Dropping it from the values makes the template stop
-*rendering* the key — and Helm does not delete a key that is simply absent from the new render.
-Measured on 09/09/26: the shared-model API key was still in `apowerb-secrets`, 53 characters
-long, after an upgrade that no longer declared it.
-
-This is the mirror image of [Trap 4](#trap-4-an-upgrade-that-empties-the-secret), and the more
-dangerous of the two: there you lose a secret you meant to keep; here you keep a secret you
-meant to destroy.
-
-**Remedy.** Delete the key explicitly, then restart so the pods stop carrying it:
-
-```bash
-kubectl -n apowerb get secret apowerb-secrets \
-  -o go-template='{{range $k,$v := .data}}{{$k}}{{"\n"}}{{end}}'
-kubectl -n apowerb patch secret apowerb-secrets --type=json \
-  -p '[{"op":"remove","path":"/data/DEFAULT_LLM_API_KEY"}]'
-kubectl -n apowerb rollout restart deploy/apowerb-backend
-```
-
-The Deployment keeps referencing the key with `optional: true`, so nothing breaks once it is
-gone — but check that before deleting a key from any chart that does not.
-
-### Trap 10: the model provider refuses the cluster's outbound address
-
-**Symptom.** The interface reports the shared model as **configured**, and every chat fails.
-The backend log names the provider, not the network:
-
-```
-GeminiException BadRequestError 400 FAILED_PRECONDITION
-"User location is not supported for the API use."
-```
-
-**Cause.** The provider geo-blocks the address the cluster leaves from — which is the hosting
-provider's NAT, not the region you picked. Measured on 09/09/26: the same key worked from one
-deployment and failed from a Kubernetes cluster **at the same host**, because the two products
-egress through different networks (`AS214504 Hostman LTD` versus `AS210976 Timeweb`), both
-geolocated in Germany.
-
-**Diagnosis.** Ask the pod, not your laptop — only its address matters:
-
-```bash
-kubectl -n apowerb exec deploy/<backend> -- python -c \
-  "import urllib.request;print(urllib.request.urlopen('https://api.ipify.org').read())"
-```
-
-Then look that address up: the *autonomous system* tells you more than the country. Test the
-providers themselves the same way — `401` means reachable and merely unauthenticated, a `403`
-or a `400` mentioning *location* means blocked.
-
-<Note>
-  Do not conclude "the key is invalid" from a 400 on Google's API before forcing IPv4: the same
-  key can answer 200 over IPv4 and 400 over IPv6, and the message is identical to the geo-block.
-  Check whether the pod even has IPv6 (`Network is unreachable` settles it).
-</Note>
-
-**Remedy.** Change provider — the fastest, and the checklist screen will tell users the truth
-meanwhile — or route the outbound traffic through an accepted address. Note that this affects
-**every** key: users' own keys hit the same wall, not just the shared one.
-
-### Trap 9: HTTPS served, but HTTP still answers
-
-**Symptom.** `https://` works with a valid certificate, and `http://` returns
-**200** with the same page instead of a redirect.
-
-**Cause.** `ingress.tlsEnabled` adds the TLS section; it does not close port
-80. The controller keeps serving the site in clear text.
-
-**Remedy.** The Middleware above, or nginx's `ssl-redirect`. Check with
-`curl -sI http://<host>/` — you want `308`, not `200`. This matters more than
-it looks: a visitor typing the address without `https://` submits their
-credentials unencrypted.
-
-### Trap 12: /health answers 200 in the cluster and 404 on the domain
-
-**Symptom.** An external uptime monitor pointed at `https://<host>/health`
-reports the service down, while every pod is `Running` and the site loads in a
-browser.
-
-**Cause.** The Ingress carries a single rule — `/` to the **frontend**. The
-backend is not published; the frontend proxies `/api/*` to it server-side.
-So `/api/config` reaches the backend through the domain, while `/health` sits
-outside `/api` and is answered by the SPA, which returns 404 for a route it
-does not know.
-
-**Remedy.** Nothing to repair — `/health` is the kubelet's liveness probe, and
-it answers where the probe runs. Verify it as in step 7, through a
-port-forward. For external monitoring, watch the site root (`200`) or
-`/api/config`, which is public and served by the backend:
-
-```bash
-kubectl -n apowerb port-forward svc/apowerb-backend 18000:8000 &
-curl -s -o /dev/null -w "%{http_code}\n" localhost:18000/health   # 200
-curl -s -o /dev/null -w "%{http_code}\n" https://<host>/health     # 404, expected
-curl -s -o /dev/null -w "%{http_code}\n" https://<host>/api/config # 200
-```
-
-### Trap 8: the old static manifests
-
-**Symptom.** `kubectl apply -f k8s/` installs something that looks right but
-has no orchestrator, no log store, no collector and no data volume, with an
-Ingress on `apowerb.local`.
-
-**Cause.** Those manifests predate the chart and were kept for reference.
-
-**Remedy.** Use the chart. The `k8s/` folder now holds only what lives
-*beside* a release — the cert-manager issuers, which are cluster-wide and do
-not belong to an application chart.
