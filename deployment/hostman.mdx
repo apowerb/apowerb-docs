@@ -1,11 +1,40 @@
 ---
 title: "Hostman"
-description: "Deploy apowerb to Hostman."
+description: "Deploy apowerb on Hostman App Platform with a managed PostgreSQL."
 ---
 
-To deploy apowerb to Hostman:
+App Platform reads the `docker-compose.yml` at the root of
+[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting). That file has
+no database: create one first.
 
-1.  Connect your repository to Hostman.
-2.  Choose "Docker" as your service type.
-3.  Configure your container and environment variables.
-4.  Deploy.
+1. In **Databases**, create a PostgreSQL cluster in the same region as the
+   app, with a database used only by apowerb. A database whose tables were
+   created by another role leaves the server running and unusable.
+2. Create an App Platform app from your copy of `apowerb-hosting`, type
+   Docker Compose.
+3. Generate the secrets on your machine:
+
+    ```bash
+    echo "ENCRYPT_KEY=$(openssl rand -base64 32 | tr '+/' '-_')"
+    echo "TH2ETL_API_KEY=$(openssl rand -hex 32)"
+    echo "TH2PULSE_INGEST_TOKEN=$(openssl rand -hex 32)"
+    echo "TH2PULSE_QUERY_TOKEN=$(openssl rand -hex 32)"
+    ```
+
+4. In the app's variables, set those four plus `DB_HOST` (the cluster's
+   **private** address: the connection is not encrypted), `DB_NAME`,
+   `DB_USER`, `DB_PASSWORD`, `APP_PUBLIC_URL` (the app's `https://` address)
+   and `DEFAULT_SUPERADMIN_EMAIL`.
+5. Deploy, then check from a clone of the repository:
+
+    ```bash
+    ./scripts/check-deployment.sh https://your-app.example.com
+    ```
+
+Run the check after every deployment. The platform has twice redeployed the
+interface and left the backend on its old image; the check fails on that, and
+the remedy is to redeploy the backend service by hand.
+
+The root file publishes no backend port: the interface proxies `/api` over the
+internal network, and the platform serves the first service, the interface,
+on its domain.

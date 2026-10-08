@@ -16,9 +16,18 @@ Checked on 2 October 2026 on the [signup credit page](https://docs.digitalocean.
 
 ## Deploy
 
-To deploy apowerb to DigitalOcean, you can use the App Platform.
+No procedure for this platform has been tested yet. What any deployment needs,
+taken from the [Docker Compose](/deployment/dockercompose) stack:
 
-1.  Connect your GitHub repository.
-2.  Select the `Dockerfile` from the root of your project.
-3.  Configure the environment variables.
-4.  Deploy.
+- the published images [`apowerb/apowerb`](https://hub.docker.com/r/apowerb/apowerb)
+  (API, port `8000`) and [`apowerb/apowerb-ui`](https://hub.docker.com/r/apowerb/apowerb-ui)
+  (interface, port `3000`), at the tags pinned together in
+  [`docker-compose/docker-compose.yml`](https://github.com/apowerb/apowerb-hosting/blob/main/docker-compose/docker-compose.yml);
+  nothing has to be built;
+- a PostgreSQL database, passed to the API as `DB_HOST`, `DB_PORT`, `DB_NAME`,
+  `DB_USER`, `DB_PASSWORD`;
+- `ENCRYPT_KEY`, a Fernet key: `openssl rand -base64 32 | tr '+/' '-_'`;
+- `API_URL` on the interface, set to the API's internal address.
+
+For a managed platform that runs a Compose file, the
+[Hostman](/deployment/hostman) page is the closest tested reference.

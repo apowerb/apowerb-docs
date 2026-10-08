@@ -1,10 +1,27 @@
 ---
 title: "Portainer"
-description: "Manage apowerb deployments using Portainer."
+description: "Deploy the Docker Compose stack as a Portainer stack."
 ---
 
-Portainer provides a GUI to manage your Docker or Kubernetes environments.
+<Note>
+  Not tested yet. The stack is the same as
+  [Docker Compose](/deployment/dockercompose); please report what you find.
+</Note>
 
-1.  Use the Portainer web interface to add a new Stack.
-2.  Paste your `docker-compose.yml` configuration.
-3.  Deploy the stack.
+1. Generate the secrets on your machine:
+
+    ```bash
+    echo "DB_PASSWORD=$(openssl rand -hex 24)"
+    echo "ENCRYPT_KEY=$(openssl rand -base64 32 | tr '+/' '-_')"
+    ```
+
+2. In Portainer, open **Stacks** → **Add stack** and pick the **Repository**
+   build method.
+3. Repository URL `https://github.com/apowerb/apowerb-hosting`, compose path
+   `docker-compose/docker-compose.yml`.
+4. Under **Environment variables**, add `DB_NAME=th2agent`, `DB_USER=th2agent`,
+   the two values from step 1 and `DEFAULT_SUPERADMIN_EMAIL=you@example.com`.
+5. **Deploy the stack**, then open port `3000` of the host and sign up with
+   the administrator e-mail.
+
+Keep `ENCRYPT_KEY`: losing it makes every connected integration unreadable.

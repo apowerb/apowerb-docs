@@ -4,8 +4,18 @@ description: "Preparing a cluster for apowerb with kubectl and plain manifests �
 ---
 
 This page prepares the **cluster**: everything here is `kubectl` and plain
-manifests, no Helm. The application itself is installed by the
-[Helm chart](/deployment/helmchart), once the cluster passes the checks below.
+manifests, no Helm. The application itself is installed afterwards, either
+by the [Helm chart](/deployment/helmchart) or with `kubectl` alone
+([Install without Helm](#install-without-helm)), once the cluster passes the
+checks below.
+
+The files cited below live in the hosting repository. Run the commands from a
+clone of it:
+
+```bash
+git clone https://github.com/apowerb/apowerb-hosting.git
+cd apowerb-hosting
+```
 
 Every step was run on a real cluster (k0s v1.36.3, three nodes) before being
 written down. The commands are the ones that worked; the **Traps** section at
@@ -154,7 +164,9 @@ spec:
 The production issuer is the same with
 `https://acme-v02.api.letsencrypt.org/directory` and its own key secret name.
 Both are ready-made in the hosting repository under
-`k8s/cert-manager/cluster-issuer-letsencrypt.yaml`.
+`k8s/cert-manager/cluster-issuer-letsencrypt.yaml`. Replace the `email:` of
+**both** issuers with a mailbox you read before applying it: the file ships
+with a maintainer's address.
 
 ```bash
 kubectl apply -f k8s/cert-manager/cluster-issuer-letsencrypt.yaml
@@ -190,21 +202,61 @@ section.
 
 ## The manifests in `k8s/`
 
-The hosting repository's `k8s/` folder holds what lives **beside** an
-installation — cluster-wide objects an application chart should not create:
+The hosting repository's `k8s/` folder holds four sets of manifests. Those
+under `k8s/apowerb/` are rendered from the chart, so both install paths deploy
+the same stack.
 
 | Path | What it is |
 | --- | --- |
+| `k8s/apowerb/` | the whole application: PostgreSQL, backend, interface, th2etl and its seed Job, th2pulse, the collector, the data volume |
+| `k8s/apowerb-public/` | the Ingress and a backend that knows its public URL, for `apowerb.example.com` |
 | `k8s/cert-manager/cluster-issuer-letsencrypt.yaml` | the staging and production issuers — [step 4](#4-cert-manager-and-an-issuer) |
 | `k8s/traefik/redirect-https.yaml` | the HTTP → HTTPS Middleware — [step 5](#5-https-redirect-traefik) |
 
-`00-namespace.yaml` … `05-ingress.yaml` are older: they predate the chart and
-describe an incomplete stack — no orchestrator, no log store, no collector, no
-data volume, an Ingress on `apowerb.local`. `kubectl apply -f k8s/` installs
-something that *looks* right and is not. Do not use them to install the
-application.
+## Install without Helm
 
-## Next: install the application
+```bash
+./scripts/generate-k8s-secret.sh        # writes k8s/secret.yaml, mode 600
+kubectl apply -f k8s/apowerb/00-namespace.yaml -f k8s/secret.yaml
+kubectl apply -f k8s/apowerb/
+kubectl -n apowerb get pods
+```
+
+Expected: six pods `Running` and `apowerb-th2etl-seed` `Completed`. Back up
+`k8s/secret.yaml` and never regenerate it: a new `ENCRYPT_KEY` makes every
+connected integration unreadable. Reach the interface with
+`kubectl -n apowerb port-forward svc/apowerb-frontend 13000:3000`.
+
+**Public address.** Copy `apowerb-public/`, put your domain in, apply the copy:
+
+```bash
+cp -r k8s/apowerb-public my-public
+sed -i.bak 's/apowerb\.example\.com/apowerb.your-domain.tld/' my-public/*.yaml
+kubectl apply -f my-public/
+kubectl -n apowerb get certificate
+```
+
+It uses the staging issuer. Once the certificate is `READY`, switch the
+`cert-manager.io/cluster-issuer` annotation to `letsencrypt-prod` and delete
+the `apowerb-tls` secret.
+
+**Upgrade.** Keep the same `secret.yaml`. The seed Job is immutable: delete it
+first.
+
+```bash
+git pull
+kubectl -n apowerb delete job apowerb-th2etl-seed --ignore-not-found
+kubectl apply -f k8s/apowerb/
+```
+
+With a public address, skip `k8s/apowerb/backend-deployment.yaml` and apply
+`my-public/` instead: the plain backend has no public URL, and CORS and OAuth
+callbacks break until the public copy is back.
+
+**Remove.** `kubectl delete -f k8s/apowerb/` deletes the namespace and both
+volumes, the database included. Nothing protects them, unlike the chart.
+
+## Next: install with Helm
 
 <Card title="Helm chart" icon="helm" href="/deployment/helmchart">
   Secrets, install, checks, public address, first administrator, upgrades.

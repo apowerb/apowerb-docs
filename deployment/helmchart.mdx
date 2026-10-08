@@ -21,6 +21,7 @@ the backend writes to disk.
 | `th2pulse` (log store) | on | `th2pulse.enabled` |
 | OpenTelemetry collector | on | `otelCollector.enabled` |
 | `PersistentVolumeClaim` on `/data` | on | `persistence.enabled` |
+| `th2forecast` (forecasting engine) | off | `th2forecast.enabled`, with `th2forecast.apiToken` required |
 
 ## Before you start
 
@@ -204,7 +205,8 @@ the Middleware ([Kubernetes, step 5](/deployment/kubernetes#5-https-redirect-tra
 then add one annotation:
 
 ```bash
-helm upgrade ... \
+helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+  --namespace apowerb --values values-secrets.yaml --reuse-values \
   --set ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.middlewares"=apowerb-redirect-https@kubernetescrd
 ```
 
@@ -308,7 +310,9 @@ kubectl -n apowerb logs job/apowerb-th2etl-seed
 
 ## A smaller stack
 
-Nothing beyond the product itself is mandatory:
+Nothing beyond the product itself is mandatory. The `./helm/apowerb-chart`
+paths below are relative to a clone of
+[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting):
 
 ```bash
 helm upgrade --install apowerb ./helm/apowerb-chart \
@@ -354,6 +358,7 @@ helm upgrade --install apowerb ./helm/apowerb-chart \
 ```bash
 helm lint helm/apowerb-chart
 helm template rel helm/apowerb-chart \
+  --set postgres.password=x --set backend.env.encryptKey=x \
   --set th2pulse.ingestToken=x --set th2pulse.queryToken=y \
   | kubeconform -strict -summary -kubernetes-version 1.30.0
 ```
