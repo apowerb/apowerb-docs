@@ -308,10 +308,10 @@ curl -s -o /dev/null -w '%{http_code}\n' $APP/api/agents  # 401: the API answers
 
 Then open the address in a browser:
 
-1. **Sign up** with an e-mail and a password, then **sign in**. A
-   `starter_agent_…` appears in **Agent Factory**: it was created at sign-up,
-   so the API is writing to the database.
-2. Create an agent: type a name in **Agent Name**, then **Create**.
+1. **Create Account** with an e-mail and a password. You are signed in and
+   land on the dashboard, which shows no agent yet.
+2. Click **Create starter agent**. apowerb opens **Agent Factory**, and a
+   `starter_agent_…` is listed: the API is writing to the database.
 3. **Reload** the page. The agent must still be listed.
 
 ## Clean up
