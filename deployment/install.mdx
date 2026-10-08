@@ -74,7 +74,7 @@ description: "apowerb installs on a single machine or a cluster in a few minutes
         th2pulse: {ingestToken: "$(openssl rand -hex 32)", queryToken: "$(openssl rand -hex 32)"}
         postgres: {password: "$(openssl rand -hex 16)"}
         YAML
-        helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+        helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
           --namespace apowerb --create-namespace --values values-secrets.yaml \
           --set superadmin.email=you@example.com --timeout 10m
         ```
