@@ -157,7 +157,14 @@ In the portal search bar, type `postgresql flexible` and open
 ## 3. Create the `th2agent` database
 
 The server comes with a `postgres` database only. apowerb expects a database of
-its own. In Cloud Shell:
+its own.
+
+In the portal, open the server once its status is **Ready**, then
+**Settings** › **Databases** › **+ Add**. Type `th2agent` in **Name**, keep the
+default character set and collation, and click **Save**. The database appears
+in the list a few seconds later.
+
+Or in Cloud Shell:
 
 ```bash
 az postgres flexible-server db create \
