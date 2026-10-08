@@ -69,10 +69,15 @@ to know whether the stack runs.
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart \
   --namespace apowerb --create-namespace \
   --values values-secrets.yaml --timeout 10m
+helm -n apowerb list
 ```
+
+No `--version`: Helm installs the newest chart published on Docker Hub, so this
+page never lags behind a release. `helm -n apowerb list` shows the version you
+got; pass it as `--version` to any later command that must stay on it.
 
 Pulling the images takes a few minutes on a fresh cluster — the backend image
 alone is around 250 MB.
@@ -155,7 +160,7 @@ resolve, then upgrade with the Ingress — with the **staging** issuer first
 
 ```bash
 helm upgrade --install apowerb \
-  oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+  oci://registry-1.docker.io/apowerb/apowerb-chart \
   --namespace apowerb --values values-secrets.yaml \
   --set ingress.enabled=true \
   --set ingress.className=traefik \
@@ -205,7 +210,7 @@ the Middleware ([Kubernetes, step 5](/deployment/kubernetes#5-https-redirect-tra
 then add one annotation:
 
 ```bash
-helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
   --namespace apowerb --values values-secrets.yaml --reuse-values \
   --set ingress.annotations."traefik\.ingress\.kubernetes\.io/router\.middlewares"=apowerb-redirect-https@kubernetescrd
 ```
@@ -248,9 +253,12 @@ path to knowing what is left to configure — see
 
 ```bash
 helm upgrade apowerb oci://registry-1.docker.io/apowerb/apowerb-chart \
-  --version <new> --namespace apowerb --values values-secrets.yaml
+  --namespace apowerb --values values-secrets.yaml
 helm -n apowerb list
 ```
+
+Without `--version` this moves to the newest published chart; add
+`--version <x.y.z>` to choose one.
 
 **Upgrading an existing install to 0.4.21: check where the database lives
 first.** Since 0.4.21, PostgreSQL writes to `/var/lib/postgresql/data/pgdata`,
@@ -417,7 +425,7 @@ the stack as it was several versions ago.
 **Remedy.** Pull from `apowerb/apowerb-chart`, and check what you got:
 
 ```bash
-helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24
+helm show chart oci://registry-1.docker.io/apowerb/apowerb-chart
 ```
 
 The `name` must read `apowerb-chart`.
