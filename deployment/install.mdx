@@ -1,0 +1,113 @@
+---
+title: "Installation guide"
+description: "apowerb installs on a single machine or a cluster in a few minutes. Pick your flavor."
+---
+
+<Tabs>
+  <Tab title="Docker" icon="docker">
+    <Steps>
+      <Step title="Install with docker compose">
+        ```bash
+        git clone https://github.com/apowerb/apowerb-hosting.git && cd apowerb-hosting
+        cp .env.example .env && ./scripts/generate-secrets.sh
+        docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
+        ```
+      </Step>
+      <Step title="Create the first admin">
+        Set `DEFAULT_SUPERADMIN_EMAIL=you@example.com` in `.env`, run the last
+        command again, then sign up with that address at
+        [http://localhost:3000](http://localhost:3000).
+      </Step>
+    </Steps>
+    Details: [Docker Compose](/deployment/dockercompose).
+  </Tab>
+
+  <Tab title="Docker + HTTPS" icon="lock">
+    Needs a domain pointing at the server and ports 80 and 443 open.
+    <Steps>
+      <Step title="Install with docker compose and Traefik">
+        ```bash
+        git clone https://github.com/apowerb/apowerb-hosting.git && cd apowerb-hosting
+        cp .env.example .env && ./scripts/generate-secrets.sh
+        # set APP_HOST and ACME_EMAIL in .env
+        docker compose -f docker-compose/docker-compose.yml -f docker-compose/docker-compose.traefik.yml --env-file .env up -d
+        ```
+      </Step>
+      <Step title="Create the first admin">
+        Set `DEFAULT_SUPERADMIN_EMAIL=you@example.com` in `.env`, run the last
+        command again, then sign up with that address at `https://<APP_HOST>`.
+      </Step>
+    </Steps>
+    Details: [Single VM / HTTPS](/deployment/virtual-machine).
+  </Tab>
+
+  <Tab title="Kubernetes" icon="dharmachakra">
+    Needs a cluster with a default storage class.
+    <Steps>
+      <Step title="Install with kubectl">
+        ```bash
+        git clone https://github.com/apowerb/apowerb-hosting.git && cd apowerb-hosting
+        ./scripts/generate-k8s-secret.sh
+        kubectl apply -f k8s/apowerb/00-namespace.yaml -f k8s/secret.yaml
+        kubectl apply -f k8s/apowerb/
+        ```
+      </Step>
+      <Step title="Open the interface">
+        ```bash
+        kubectl -n apowerb port-forward svc/apowerb-frontend 13000:3000
+        ```
+        Then sign up at [http://localhost:13000](http://localhost:13000). Keep
+        `k8s/secret.yaml`: it holds the encryption key.
+      </Step>
+    </Steps>
+    Details: [Kubernetes](/deployment/kubernetes#install-without-helm).
+  </Tab>
+
+  <Tab title="Helm" icon="ship">
+    Needs a cluster with a default storage class.
+    <Steps>
+      <Step title="Install with Helm">
+        ```bash
+        umask 077; cat > values-secrets.yaml <<YAML
+        backend: {env: {encryptKey: "$(openssl rand -base64 32)"}}
+        th2etl: {apiKey: "$(openssl rand -hex 32)"}
+        th2pulse: {ingestToken: "$(openssl rand -hex 32)", queryToken: "$(openssl rand -hex 32)"}
+        postgres: {password: "$(openssl rand -hex 16)"}
+        YAML
+        helm upgrade --install apowerb oci://registry-1.docker.io/apowerb/apowerb-chart --version 0.4.24 \
+          --namespace apowerb --create-namespace --values values-secrets.yaml \
+          --set superadmin.email=you@example.com --timeout 10m
+        ```
+      </Step>
+      <Step title="Open the interface">
+        ```bash
+        kubectl -n apowerb port-forward svc/apowerb-frontend 13000:3000
+        ```
+        Sign up at [http://localhost:13000](http://localhost:13000) with the
+        `superadmin.email` address; the next backend start makes it admin.
+        Keep `values-secrets.yaml` and pass it to every `helm upgrade`.
+      </Step>
+    </Steps>
+    Details: [Helm chart](/deployment/helmchart).
+  </Tab>
+
+  <Tab title="Podman" icon="box">
+    Not tested yet. Needs Podman 4.7 or later.
+    <Steps>
+      <Step title="Install with podman compose">
+        ```bash
+        git clone https://github.com/apowerb/apowerb-hosting.git && cd apowerb-hosting
+        cp .env.example .env && ./scripts/generate-secrets.sh
+        podman compose -f docker-compose/docker-compose.yml --env-file .env up -d
+        ```
+      </Step>
+      <Step title="Create the first admin">
+        Set `DEFAULT_SUPERADMIN_EMAIL=you@example.com` in `.env`, run the last
+        command again, then sign up at [http://localhost:3000](http://localhost:3000).
+      </Step>
+    </Steps>
+    Details: [Podman](/deployment/podman).
+  </Tab>
+</Tabs>
+
+Managed platforms: [Hostman](/deployment/hostman), [Portainer](/deployment/portainer).
