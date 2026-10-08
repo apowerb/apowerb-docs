@@ -14,7 +14,7 @@ from local Docker setups to managed cloud services and Kubernetes.
     The quickest path to bring the full stack up on a single host.
   </Card>
   <Card title="Kubernetes" icon="kubernetes" href="/deployment/kubernetes">
-    Prepare a cluster with kubectl and plain manifests: storage, ingress, certificates.
+    Prepare a cluster, then install with kubectl alone or with the chart.
   </Card>
   <Card title="Helm chart" icon="helm" href="/deployment/helmchart">
     Install the application on that cluster, configure it and upgrade it.
@@ -29,7 +29,7 @@ from local Docker setups to managed cloud services and Kubernetes.
 Choose the operating model that fits your environment:
 
 - [Docker Compose](/deployment/dockercompose): best for local development, labs, and small production installs.
-- [Kubernetes](/deployment/kubernetes): prepares the cluster — storage class, ingress controller, certificate issuer — with `kubectl` and plain manifests.
+- [Kubernetes](/deployment/kubernetes): prepares the cluster — storage class, ingress controller, certificate issuer — and can install the application with `kubectl` alone.
 - [Helm chart](/deployment/helmchart): installs and upgrades the application on that cluster; repeatable, and fits GitOps workflows.
 - [Single VM / HTTPS with Traefik](/deployment/virtual-machine): useful for self-hosted environments behind a public endpoint.
 
@@ -44,6 +44,8 @@ repository is not a secret.
   overwrites a value that is already set: a new `DB_PASSWORD` would no longer
   match the existing database volume, and a new `ENCRYPT_KEY` would make every
   connected integration unreadable.
+- **Kubernetes without Helm**: `scripts/generate-k8s-secret.sh` writes
+  `k8s/secret.yaml` and refuses to overwrite an existing one.
 - **Helm chart**: pass `postgres.password`, `backend.env.encryptKey` and the
   service tokens as values; the chart stores them in a Kubernetes `Secret` and
   refuses to install without the mandatory ones.

@@ -1,14 +1,60 @@
 ---
-title: "Virtual Machine"
-description: "Deploying apowerb on a Virtual Machine with Traefik."
+title: "Single VM / HTTPS"
+description: "Serve the Docker Compose stack over HTTPS on one server, with Traefik and Let's Encrypt."
 ---
 
-For a single-host deployment, overlay the Traefik HTTPS compose file on top of the existing stack.
+Traefik takes ports 80 and 443 and gets the certificate from Let's Encrypt.
+
+## Requirements
+
+- Everything from [Docker Compose](/deployment/dockercompose#requirements)
+- A domain name pointing at the server
+- Ports `80` and `443` open to the internet: Let's Encrypt validates through
+  them, so this cannot be tested on a laptop
+
+## 1. Download and configure
 
 ```bash
+git clone https://github.com/apowerb/apowerb-hosting.git
+cd apowerb-hosting
 cp .env.example .env
-# set APP_HOST and ACME_EMAIL in .env
-docker compose -f docker-compose.yml -f docker-compose.traefik.yml up -d
+./scripts/generate-secrets.sh
 ```
 
-The app is served through `https://$APP_HOST`.
+Then open `.env` and set:
+
+```bash
+APP_HOST=apowerb.example.com
+ACME_EMAIL=you@example.com
+DEFAULT_SUPERADMIN_EMAIL=you@example.com
+```
+
+## 2. Start
+
+```bash
+docker compose -f docker-compose/docker-compose.yml -f docker-compose/docker-compose.traefik.yml --env-file .env up -d
+```
+
+Run it from the repository root and name both files: the root
+`docker-compose.yml` is the [Hostman](/deployment/hostman) file, not this stack.
+
+## 3. Check
+
+```bash
+./scripts/check-deployment.sh https://apowerb.example.com
+```
+
+Then open `https://apowerb.example.com` and sign up with the administrator
+e-mail.
+
+<Warning>
+  Before [apowerb-hosting#99](https://github.com/apowerb/apowerb-hosting/pull/99),
+  the overlay also left the interface on port `3000` and the API on port
+  `8000` in plain HTTP. Check with `docker compose ... ps`: only `traefik`
+  should publish ports. Otherwise, pull the repository or close 3000 and 8000
+  in the server's firewall.
+</Warning>
+
+Everyday commands, optional services and troubleshooting are the same as
+[Docker Compose](/deployment/dockercompose#everyday-commands), with the
+`-f docker-compose/docker-compose.traefik.yml` overlay added to each command.

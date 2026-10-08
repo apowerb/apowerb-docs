@@ -1,59 +1,116 @@
 ---
 title: "Docker Compose"
-description: "The reference deployment stack."
+description: "Install the API, the interface and PostgreSQL on one machine, in four commands."
 ---
 
-[`apowerb-hosting`](https://github.com/apowerb/apowerb-hosting) holds no application
-code. It assembles [`apowerb/apowerb`](https://github.com/apowerb/apowerb) (the API)
-and [`apowerb/apowerb-ui`](https://github.com/apowerb/apowerb-ui) (the interface) and
-gives them a database.
+Count about 15 minutes, most of it downloading the images (about 3 GB).
 
-## Deployment options
+## Requirements
 
-`apowerb-hosting` repository provides the following deployment assets for the stack:
+- Linux, macOS or Windows (WSL 2), `linux/amd64` or `linux/arm64`
+- Docker Engine with Compose v2: `docker compose version` must answer
+- 4 GB of free disk space
+- Ports `3000` and `8000` free
 
-- **Docker Compose**: Uses published images from Docker Hub.
-- **Kubernetes**: Static manifests.
-- **Helm**: Local source tree chart.
-- **Single VM / HTTPS with Traefik**: Overlay Traefik HTTPS configuration.
+## 1. Download and configure
 
-See the [GitHub repository](https://github.com/apowerb/apowerb-hosting) for full configuration details and scripts.
+```bash
+git clone https://github.com/apowerb/apowerb-hosting.git
+cd apowerb-hosting
+cp .env.example .env
+./scripts/generate-secrets.sh
+```
 
-## Images are pulled, not built
+The script fills the database password, the encryption key and the service
+tokens with random values, and never overwrites a value already set. Keep
+`.env` safe: losing `ENCRYPT_KEY` makes every connected integration unreadable.
 
-The compose file references **published images**, pinned to explicit versions —
-there is no `build:` block and no sibling clone to fetch.
+## 2. Name the first administrator
 
-The pinning is deliberate. A moving tag such as `latest` promises nothing about
-the API and the interface having been tested together; the pair declared in the
-file was proven together — sign-up, sign-in, an agent created and read back.
-Override **both** tags when you move, never one alone: the frontend and the
-backend cap each other in both directions.
+Open `.env` and set:
 
-No system packages are installed in the images: `psycopg2-binary`, `asyncpg` and
-`cryptography` arrive as prebuilt wheels, and the health probes are written in
-Python and Node rather than shelling out to `curl`. The build therefore depends
-on no Debian mirror.
+```bash
+DEFAULT_SUPERADMIN_EMAIL=you@example.com
+```
 
-## Published assets
+Whoever signs up with this address becomes an administrator, with their own
+password. Without it, a new installation has no administrator at all.
 
-- **Backend image**: [`apowerb/apowerb` on Docker Hub](https://hub.docker.com/r/apowerb/apowerb)
-- **Frontend image**: [`apowerb/apowerb-ui` on Docker Hub](https://hub.docker.com/r/apowerb/apowerb-ui)
-- **Backend package**: [`apowerb/apowerb` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
-- **Frontend package**: [`apowerb/apowerb-ui` on GitHub Container Registry](https://github.com/orgs/apowerb/packages)
+Optional, a model shared by every agent (otherwise each agent needs its own
+API key):
 
-## Helm chart OCI registry
+```bash
+DEFAULT_LLM_MODEL=<provider/model>
+DEFAULT_LLM_API_KEY=<your key>
+```
 
-- **Docker Hub chart**: [oci://registry-1.docker.io/apowerb/apowerb-chart](https://hub.docker.com/r/apowerb/apowerb-chart)
+## 3. Start
 
-<Note>
-  The chart moved out of `apowerb/apowerb` in 0.4.1. That repository holds the
-  backend **images**, and a Docker Hub repository cannot be subdivided, so the
-  two artefacts shared one tag namespace: `apowerb/apowerb:0.4.0` was a 16 kB
-  chart, `:0.2.12` a 250 MB image. Charts published before the move are still
-  pullable at the old address; new ones are not.
+```bash
+docker compose -f docker-compose/docker-compose.yml --env-file .env up -d
+```
 
-  GitHub Container Registry was dropped the same day. The push succeeded, but
-  a package is born **private** in a GitHub organization, so
-  a `helm pull` from `ghcr.io` answered `403` to anonymous users.
-</Note>
+<Warning>
+  Always name the file. The `docker-compose.yml` at the root of the repository
+  is the [Hostman](/deployment/hostman) file: it has no PostgreSQL and stops on
+  `set DB_HOST`.
+</Warning>
+
+## 4. Check and sign up
+
+```bash
+docker compose -f docker-compose/docker-compose.yml --env-file .env ps
+curl -s http://localhost:8000/health
+./scripts/check-deployment.sh http://localhost:3000
+```
+
+Expected: three services running (`postgres` healthy), `{"status":"ok"}`, and
+every check `ok`. Then open [http://localhost:3000](http://localhost:3000) and sign up with the
+administrator e-mail from step 2.
+
+For HTTPS on a server, continue with [Single VM / HTTPS](/deployment/virtual-machine).
+
+## Everyday commands
+
+Run from the `apowerb-hosting` folder.
+
+| Task | Command |
+| --- | --- |
+| Follow the API logs | `docker compose -f docker-compose/docker-compose.yml --env-file .env logs -f apowerb` |
+| Stop, keep the data | `docker compose -f docker-compose/docker-compose.yml --env-file .env down` |
+| Update to the latest tested pair | `git pull`, then the step 3 command again |
+| Back up the database | `docker compose -f docker-compose/docker-compose.yml --env-file .env exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > backup.sql` |
+| Uninstall and erase all data | `docker compose -f docker-compose/docker-compose.yml --env-file .env down -v` |
+
+The images are pinned to an API and interface pair tested together. To change
+versions by hand, set `APOWERB_BACKEND_TAG` and `APOWERB_FRONTEND_TAG` in
+`.env`, always both: each one caps the other.
+
+## Optional services
+
+Each one needs two lines in `.env`, then the step 3 command again. Profiles
+combine with a comma: `COMPOSE_PROFILES=pulse,etl`.
+
+| Service | Lines to add in `.env` |
+| --- | --- |
+| Logs and agent traces | `COMPOSE_PROFILES=pulse` and `OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318` |
+| Scheduled agent runs | `COMPOSE_PROFILES=etl` and `ORCHESTRATOR=th2etl` |
+| Forecasting | `COMPOSE_PROFILES=forecast` and `TH2FORECAST_URL=http://th2forecast:8000` |
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| `port is already allocated` on 3000 or 8000 | Prefix the step 3 command with `FRONT_PORT=3010 TH2AGENT_PORT=8010` |
+| `set DB_HOST` at start | You ran the root file: add `-f docker-compose/docker-compose.yml` |
+| No model in the agent list | Add a key on the agent, or set both `DEFAULT_LLM_MODEL` and `DEFAULT_LLM_API_KEY`, then restart |
+| Signed up but not administrator | `DEFAULT_SUPERADMIN_EMAIL` was empty at sign-up: set it, then restart the stack |
+
+## Images
+
+The compose file pulls published images from Docker Hub, nothing is built:
+[`apowerb/apowerb`](https://hub.docker.com/r/apowerb/apowerb) (API) and
+[`apowerb/apowerb-ui`](https://hub.docker.com/r/apowerb/apowerb-ui)
+(interface). The full end-to-end test, account creation and an agent run
+included, is in
+[`docker-compose/TESTING.md`](https://github.com/apowerb/apowerb-hosting/blob/main/docker-compose/TESTING.md).

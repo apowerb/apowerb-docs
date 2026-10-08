@@ -1,10 +1,26 @@
 ---
 title: "Podman"
-description: "Run apowerb with Podman."
+description: "Run the Docker Compose stack with Podman."
 ---
 
-Podman is a daemonless alternative to Docker. You can run apowerb just like you would with Docker:
+<Note>
+  Not tested yet. The commands use the same files as
+  [Docker Compose](/deployment/dockercompose); please report what you find.
+</Note>
+
+Requires Podman 4.7 or later, for `podman compose`.
 
 ```bash
-podman run -d -p 8000:8000 apowerb/apowerb
+git clone https://github.com/apowerb/apowerb-hosting.git
+cd apowerb-hosting
+cp .env.example .env
+./scripts/generate-secrets.sh
+podman compose -f docker-compose/docker-compose.yml --env-file .env up -d
 ```
+
+Set the first administrator first, as in
+[Docker Compose, step 2](/deployment/dockercompose#2-name-the-first-administrator),
+then open [http://localhost:3000](http://localhost:3000).
+
+A single `podman run apowerb/apowerb` is not enough: the API needs its
+database and its encryption key, which the compose file provides.
