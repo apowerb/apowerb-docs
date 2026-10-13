@@ -1,7 +1,37 @@
 ---
 title: "Azure App Service"
-description: "Deploy apowerb to Azure App Service."
+description: "Deploy apowerb on Azure from the portal: a managed PostgreSQL server, and one Web App that runs the interface and the API side by side."
 ---
+
+This page deploys the full apowerb application on Azure, from the portal:
+
+- an **Azure Database for PostgreSQL flexible server** holds the data;
+- one **Web App** runs two containers: the interface (`apowerb-ui`) as the main
+  container, which receives the traffic, and the API (`apowerb`) as a
+  **sidecar** next to it.
+
+```text
+Browser ──HTTPS──▶ Web App ┬─ main     apowerb/apowerb-ui:0.1.35   port 3000
+                           └─ sidecar  apowerb/apowerb:0.2.57      port 8000
+                                            │  (localhost only)
+                                            ▼
+                         Azure Database for PostgreSQL flexible server
+```
+
+The interface reaches the API over `localhost` and proxies every `/api` call.
+The API therefore has **no public address**, which keeps the same layout as the
+[Docker Compose stack](/deployment/dockercompose).
+
+Every step below was run end to end on **8 October 2026** on a new Azure free
+account, in the France Central region, with the portal in English and Azure CLI
+2.91.0: sign-up, sign-in, an agent created, then read back from the database.
+
+<Note>
+  Older guides use the App Service **Docker Compose** (multi-container) mode.
+  Microsoft's quickstart for that mode now redirects to the
+  [sidecar tutorial](https://learn.microsoft.com/en-us/azure/app-service/tutorial-custom-container-sidecar).
+  This page uses sidecars.
+</Note>
 
 ## Start with free credits
 
@@ -10,17 +40,314 @@ New Azure customers can open an [Azure free account](https://azure.microsoft.com
 - **$200 of credit** to use on Azure services within **30 days**. The French page shows the same amount in US dollars, not in euros.
 - To sign up you need a phone number, a non-prepaid credit or debit card, and a Microsoft or GitHub account. Azure places a temporary $1 authorization on the card.
 - After 30 days, Azure asks whether you want to move to pay-as-you-go pricing. If you don't, your account and services are disabled.
-- App Service also has a **Free (F1)** tier: up to 10 web or API apps with 1 GB of storage and 1 hour of compute per day. It is a shared tier with no scale-out.
+- App Service also has a **Free (F1)** tier: up to 10 web or API apps with 1 GB of storage and 1 hour of compute per day. It is a shared tier with no scale-out. This guide was tested on **Basic B1**, not on F1.
 - Full-time university students can use [Azure for Students](https://azure.microsoft.com/en-us/free/students/) instead: $100 of credit for 12 months, no credit card required.
 
 Checked on 2 October 2026 on [azure.microsoft.com/free](https://azure.microsoft.com/en-us/free/) and the [App Service plans overview](https://learn.microsoft.com/en-us/azure/app-service/overview-hosting-plans). Offers change: check the linked pages before you sign up.
 
-## Deploy
+## What it costs
 
-To deploy apowerb to Azure App Service, follow these steps:
+Estimates shown by the portal on 8 October 2026, in France Central:
 
-1.  Create an Azure App Service plan.
-2.  Choose "Docker Container" as the publishing method.
-3.  Configure your container settings to point to your image or source.
-4.  Set environment variables.
-5.  Deploy.
+| Resource | Size | Estimate |
+| --- | --- | --- |
+| App Service plan | Basic B1 (1 vCPU, 1.75 GB) | 13.14 USD/month |
+| PostgreSQL flexible server | Burstable B1ms (1 vCore, 2 GiB) | 13.50 USD/month |
+| PostgreSQL storage | 32 GiB, Premium SSD | 4.06 USD/month |
+
+On a free account, the portal marks the B1ms compute **"Free up to 750 hours"**
+and the storage **"Free up to 32 GB"**. The $200 credit covers the rest of a test
+comfortably.
+
+<Warning>
+  The PostgreSQL form does **not** start on these sizes. Its defaults are
+  *Production*, General Purpose **D4ds_v5**, 128 GiB and **high availability
+  enabled**: about **609 to 635 USD/month**. [Step 2](#2-create-the-postgresql-server)
+  shows the three changes that bring it down.
+</Warning>
+
+## Before you start
+
+Choose the names and prepare two secrets. Keep them in a password manager, not in
+a file you commit.
+
+| Value | Example | Rule |
+| --- | --- | --- |
+| Resource group | `rg-apowerb` | Groups everything, and deletes everything at the end |
+| PostgreSQL server | `pg-apowerb-7f3a` | Globally unique: add a suffix of your own |
+| Web App | `apowerb-7f3a` | Same |
+| PostgreSQL admin login | `apowerbadmin` | Letters and digits, must not start with `pg_` |
+| PostgreSQL password | — | 8 to 128 characters, mixing upper case, lower case, digits and symbols |
+| `ENCRYPT_KEY` | — | `openssl rand -base64 32` |
+
+`ENCRYPT_KEY` encrypts the credentials of the integrations you connect later.
+**Back it up**: if it is lost or changed, those credentials can no longer be read.
+
+## 1. Register the resource providers
+
+On the new subscription used for this guide, the two resource providers needed
+here were **not registered**. Register them once, from
+[Azure Cloud Shell](https://shell.azure.com) or a terminal where `az login` has run:
+
+```bash
+az provider register -n Microsoft.Web --wait
+az provider register -n Microsoft.DBforPostgreSQL --wait
+az provider show -n Microsoft.Web --query registrationState -o tsv
+az provider show -n Microsoft.DBforPostgreSQL --query registrationState -o tsv
+```
+
+Both last commands must print `Registered`.
+
+## 2. Create the PostgreSQL server
+
+In the portal search bar, type `postgresql flexible` and open
+**Azure Database for PostgreSQL Flexible Server** under *Marketplace*.
+
+<Steps>
+  <Step title="Basics: project and server">
+    - **Resource group**: click **Create new** and type `rg-apowerb`.
+    - **Server name**: your unique name, for example `pg-apowerb-7f3a`.
+    - **Region**: the region you will also use for the Web App.
+    - **PostgreSQL version**: **16**, the version the apowerb stack is tested
+      with. The form offers 18 by default.
+
+    <Frame caption="Create a new resource group from the PostgreSQL form.">
+      <img src="/images/azure/pg-resource-group.png" alt="PostgreSQL form, resource group field with the Create new dialog open" />
+    </Frame>
+  </Step>
+  <Step title="Basics: size and cost">
+    - **Workload type**: **Dev/Test**.
+    - **Zonal resiliency** (under *High Availability*): **Disabled**.
+    - **Compute + storage**: click **Configure server**, keep **Burstable**,
+      choose **Standard_B1ms** and keep **32 GiB** of storage, then **Save**.
+
+    <Frame caption="Burstable tier and the Standard_B1ms size: the estimate drops to about 17.56 USD/month.">
+      <img src="/images/azure/pg-compute.png" alt="Compute + storage page with the Burstable tier and Standard_B1ms selected" />
+    </Frame>
+
+    Back on *Basics*, the summary must read **Burstable, B1ms** and high
+    availability **Disabled**:
+
+    <Frame caption="The summary to check before going further.">
+      <img src="/images/azure/pg-basics-summary.png" alt="Basics tab showing Burstable B1ms and zonal resiliency disabled" />
+    </Frame>
+  </Step>
+  <Step title="Basics: authentication">
+    - **Authentication method**: **PostgreSQL authentication only**.
+    - **Administrator login**: `apowerbadmin`.
+    - **Password** and **Confirm password**: the password you prepared.
+  </Step>
+  <Step title="Networking">
+    - Keep **Public access (allowed IP addresses)**.
+    - Tick **Allow public access from any Azure service within Azure to this
+      server**. This is what lets the Web App reach the database.
+    - Do **not** add the `0.0.0.0 - 255.255.255.255` rule: it opens the
+      database to the whole internet.
+
+    <Frame caption="The one box to tick on the Networking tab.">
+      <img src="/images/azure/pg-networking.png" alt="Networking tab with the Allow public access from any Azure service checkbox highlighted" />
+    </Frame>
+  </Step>
+  <Step title="Create">
+    Click **Review + create**, check the estimate, then **Create**. The server
+    takes several minutes to deploy.
+  </Step>
+</Steps>
+
+## 3. Create the `th2agent` database
+
+The server comes with a `postgres` database only. apowerb expects a database of
+its own.
+
+In the portal, open the server once its status is **Ready**, then
+**Settings** › **Databases** › **+ Add**. Type `th2agent` in **Name**, keep the
+default character set and collation, and click **Save**. The database appears
+in the list a few seconds later.
+
+Or in Cloud Shell:
+
+```bash
+az postgres flexible-server db create \
+  -g rg-apowerb -s pg-apowerb-7f3a -n th2agent
+az postgres flexible-server db list \
+  -g rg-apowerb -s pg-apowerb-7f3a --query "[].name" -o tsv
+```
+
+The list must contain `th2agent`.
+
+<Note>
+  `az postgres flexible-server create --database-name th2agent` is refused by
+  Azure CLI 2.91: the option now only applies to elastic clusters. Create the
+  database with the separate command above.
+</Note>
+
+## 4. Create the Web App
+
+In the portal, **Create a resource** › **Web App**.
+
+<Steps>
+  <Step title="Basics">
+    | Field | Value |
+    | --- | --- |
+    | Resource group | `rg-apowerb` |
+    | Name | your unique name, for example `apowerb-7f3a` |
+    | Publish | **Container** |
+    | Operating System | **Linux** |
+    | Region | the region of the database |
+    | Linux Plan | **Create new**, for example `plan-apowerb` |
+    | Pricing plan | **Basic B1** |
+  </Step>
+  <Step title="Container: the interface">
+    | Field | Value |
+    | --- | --- |
+    | Sidecar support | **on** (*Enhanced configuration with sidecar support*) |
+    | Image Source | **Other container registries** |
+    | Name | `main` (keep it) |
+    | Access Type | **Public** |
+    | Registry server URL | `https://index.docker.io` |
+    | Image and tag | `apowerb/apowerb-ui:0.1.35` |
+    | Port | `3000` |
+
+    The image and its tag go in **one field**. Without `:0.1.35` you get
+    `latest`, and the interface and the API are only guaranteed to work
+    together at the pinned pair. The form proposes port **80**: replace it with
+    `3000`, or App Service probes a port where nothing listens.
+
+    <Frame caption="The interface as the main container, on port 3000.">
+      <img src="/images/azure/webapp-container.png" alt="Container tab with sidecar support on, Docker Hub image apowerb/apowerb-ui:0.1.35 and port 3000" />
+    </Frame>
+  </Step>
+  <Step title="Monitor + secure">
+    **Enable Application Insights**: **No**. It is not needed for this setup and
+    it costs credit.
+  </Step>
+  <Step title="Create">
+    Click **Review + create**, check that the summary shows **Basic B1** and
+    `apowerb/apowerb-ui:0.1.35` on port `3000`, then **Create**.
+  </Step>
+  <Step title="Note the default domain">
+    Open the Web App, **Overview**, and copy **Default domain**. Azure adds a
+    suffix to the name, for example
+    `apowerb-7f3a-abc123def456ghij.francecentral-01.azurewebsites.net`: the
+    address is **not** simply `<name>.azurewebsites.net`. You need the exact
+    value in the next step.
+  </Step>
+</Steps>
+
+## 5. Set the environment variables
+
+In the Web App, **Settings** › **Environment variables** › **App settings**.
+App settings are shared by every container of the app, the sidecar included.
+
+| Name | Value |
+| --- | --- |
+| `API_URL` | `http://localhost:8000` |
+| `DB_HOST` | `pg-apowerb-7f3a.postgres.database.azure.com` |
+| `DB_PORT` | `5432` |
+| `DB_NAME` | `th2agent` |
+| `DB_USER` | `apowerbadmin` |
+| `DB_SSLMODE` | `require` |
+| `APP_PUBLIC_URL` | `https://` followed by the default domain from step 4 |
+| `DB_PASSWORD` | the PostgreSQL password |
+| `ENCRYPT_KEY` | the key you generated |
+
+Add each one with **+ Add**. The **Value** field of that panel is masked, which
+is what you want for `DB_PASSWORD` and `ENCRYPT_KEY`.
+
+<Frame caption="The Add/Edit panel masks the value as you type it.">
+  <img src="/images/azure/app-setting-add.png" alt="Add/Edit application setting panel with Name and a masked Value field" />
+</Frame>
+
+<Warning>
+  **Advanced edit** shows every value in clear text, secrets included. Use it for
+  the non-secret settings only, and never share a screenshot of it.
+</Warning>
+
+Click **Apply** at the bottom of the page, then **Confirm**: the app restarts.
+Azure also adds `WEBSITES_ENABLE_APP_SERVICE_STORAGE` on its own; leave it.
+
+## 6. Add the API as a sidecar
+
+In the Web App, **Deployment** › **Deployment Center** › **Containers** ›
+**+ Add** › **Custom container**.
+
+| Field | Value |
+| --- | --- |
+| Name | `apowerb` |
+| Image source | **Other container registries** |
+| Image type | **Public** |
+| Registry server URL | `https://index.docker.io` |
+| Image and tag | `apowerb/apowerb:0.2.57` |
+| Port | `8000` |
+| Allow access to all app settings | **ticked** |
+
+<Frame caption="The API as a sidecar: Docker Hub image, port 8000, and access to the app settings.">
+  <img src="/images/azure/sidecar-add.png" alt="Add container panel with registry, image, port and the Allow access to all app settings checkbox highlighted" />
+</Frame>
+
+Click **Apply**. The list now shows two containers: `main` (*Main*) and
+`apowerb` (*Sidecar*). The first start takes a few minutes: the API image is
+about 250 MB, and it creates its tables on first boot.
+
+## 7. Check the deployment
+
+A page that answers `200` only proves that the interface is up. Check the API
+through the interface, then the real path.
+
+```bash
+APP=https://<your-default-domain>
+curl -s -o /dev/null -w '%{http_code}\n' $APP/            # 200: the interface answers
+curl -s -o /dev/null -w '%{http_code}\n' $APP/api/agents  # 401: the API answers and asks you to sign in
+```
+
+- `502` on `/api/agents`: the API is not reachable yet. It is either still
+  starting (wait two or three minutes, especially after a settings change) or
+  it failed to start: check the variables of step 5.
+- `404` on `/api/health` is normal: the API health route is not published
+  through the interface.
+
+Then open the address in a browser:
+
+1. **Create Account** with an e-mail and a password. You are signed in and
+   land on the dashboard, which shows no agent yet.
+2. Click **Create starter agent**. apowerb opens **Agent Factory**, and a
+   `starter_agent_…` is listed: the API is writing to the database.
+3. **Reload** the page. The agent must still be listed.
+
+## Clean up
+
+Everything lives in one resource group. To stop all charges, delete it:
+
+```bash
+az group delete -n rg-apowerb --yes
+```
+
+In the portal: **Resource groups** › `rg-apowerb` › **Delete resource group**.
+The database, its data and the accounts created in the app are deleted with it.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| The PostgreSQL estimate shows more than 600 USD/month | The form defaults: Production, D4ds_v5, high availability | Dev/Test, zonal resiliency **Disabled**, **Burstable B1ms** ([step 2](#2-create-the-postgresql-server)) |
+| `The --database-name argument can only be used when --node-count is present` | Azure CLI 2.91 | Create the database with `db create` ([step 3](#3-create-the-th2agent-database)) |
+| The app shows a default Azure page, or never starts | Port `80` kept, or no tag on the image | Port `3000`, image `apowerb/apowerb-ui:0.1.35` |
+| `/api/agents` answers `502` for a few minutes after a change | Both containers restart after every settings change | Wait, then check again |
+| The API cannot reach the database | The Azure services rule is missing, or a `DB_*` value is wrong | Tick **Allow public access from any Azure service**; check `DB_HOST`, `DB_USER`, `DB_SSLMODE=require` |
+| Links built by the app point to the wrong address | `APP_PUBLIC_URL` was set to `<name>.azurewebsites.net` | Use the exact **Default domain**, suffix included |
+
+## Not covered by this page
+
+- **A language model.** Agents can be created, but not run, until you set
+  `DEFAULT_LLM_MODEL`, `DEFAULT_LLM_API_KEY` and, if needed,
+  `DEFAULT_LLM_API_BASE`.
+- **Workflows.** They rely on the `th2etl` service, which this setup does not
+  deploy.
+- **Uploaded files.** No volume is mounted on `/app/data`: files stored there
+  are lost when the containers restart. Agents themselves are stored in
+  PostgreSQL and survive.
+- **Logs and traces** (`th2pulse`, OpenTelemetry collector), a custom domain,
+  and the **Free (F1)** tier were not tested.
+
+Checked on 8 October 2026. Portal labels change: if one differs, the field it
+names is still the one to set.
