@@ -275,6 +275,16 @@ Agents with no model of their own fall back to this provider.
 | `DB_AGENT_STORE_TABLE_NAME` | `th2agents_store` | Table holding agent definitions |
 | `ECHO_SQL` | `false` | Log every SQL statement — noisy, for debugging only |
 
+## Generated SQL
+
+Queries written by an agent (the Text-to-SQL tool, and the database import into RAG) run in a read-only transaction: the database refuses any write. A statement timeout cancels a query that runs too long.
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `SQL_STATEMENT_TIMEOUT_S` | `30` | Seconds a generated query may run before the database cancels it. `0` turns the limit off. A negative or non-integer value falls back to `30` |
+
+On MySQL the limit uses `max_execution_time` (MariaDB: `max_statement_time`) and applies to `SELECT` only. Connect these tools with a database user that has read access only: the transaction and the timeout are a second line, not a replacement for it.
+
 ## Runtime directories
 
 Where the server writes on disk. S3 keys keep their own namespace and are unaffected.
