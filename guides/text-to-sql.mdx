@@ -23,6 +23,13 @@ POST /api/rag/schema-cache/invalidate
 ```
 
 <Note>
+  Generated queries run in a read-only transaction and are cancelled after
+  `SQL_STATEMENT_TIMEOUT_S` seconds (30 by default) — see
+  [Configuration](/configuration#generated-sql). Give the tool config a database
+  user with read access only.
+</Note>
+
+<Note>
   A query that returns no rows surfaces as `422`, not as an empty success — see
   [Errors](/api-reference/errors).
 </Note>
